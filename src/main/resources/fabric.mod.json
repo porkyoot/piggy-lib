@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "piggy-lib",
+	"version": "${version}",
+	"name": "Piggy Lib",
+	"description": "Library code for Piggy mods",
+	"authors": [
+		"Etoile"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/piggy-lib/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"is.pig.minecraft.lib.PiggyLib"
+		]
+	},
+	"mixins": [
+		"piggy-lib.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.17.3",
+		"minecraft": "~1.21.10",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
