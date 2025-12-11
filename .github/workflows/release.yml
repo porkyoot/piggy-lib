@@ -1,9 +1,14 @@
-name: build
-on: [pull_request, push]
+name: release
+on:
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - name: Checkout Master Project
         uses: actions/checkout@v4
@@ -29,8 +34,6 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x ./gradlew
 
-      # ISOLATION: Only include this library.
-      # Since piggy-lib is the base, it doesn't need anything else.
       - name: Isolate Project Dependencies
         run: |
           cat <<EOF > settings.gradle
@@ -51,8 +54,8 @@ jobs:
       - name: Build
         run: ./gradlew :piggy-lib:build
 
-      - name: Capture Build Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: Artifacts
-          path: piggy-lib/build/libs/
+          files: piggy-lib/build/libs/*.jar
