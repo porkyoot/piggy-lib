@@ -50,7 +50,7 @@ public class PiggyClientConfig {
      * 
      * @param instance The new instance loaded from disk.
      */
-    static void setInstance(PiggyClientConfig instance) {
+    public static void setInstance(PiggyClientConfig instance) {
         INSTANCE = instance;
     }
 
