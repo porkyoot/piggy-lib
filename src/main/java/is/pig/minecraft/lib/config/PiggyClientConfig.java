@@ -19,7 +19,8 @@ public class PiggyClientConfig {
                                                                                                 // overrides
 
     // --- Listener support ---
-    private final List<ConfigSyncListener> syncListeners = new CopyOnWriteArrayList<>();
+    // Marked transient to prevent Gson from trying to serialize listeners to the config file
+    private final transient List<ConfigSyncListener> syncListeners = new CopyOnWriteArrayList<>();
 
     public void registerConfigSyncListener(ConfigSyncListener listener) {
         if (listener != null) syncListeners.add(listener);
@@ -47,8 +48,7 @@ public class PiggyClientConfig {
 
     /**
      * Updates the singleton instance. Should only be called by ConfigPersistence.
-     * 
-     * @param instance The new instance loaded from disk.
+     * * @param instance The new instance loaded from disk.
      */
     public static void setInstance(PiggyClientConfig instance) {
         INSTANCE = instance;
@@ -61,6 +61,14 @@ public class PiggyClientConfig {
 
     public void setNoCheatingMode(boolean noCheatingMode) {
         this.noCheatingMode = noCheatingMode;
+    }
+
+    /**
+     * Determines if the global "No Cheating Mode" toggle can be edited.
+     * Returns false if the server is enforcing anti-cheat (allowCheats = false).
+     */
+    public boolean isGlobalCheatsEditable() {
+        return this.serverAllowCheats;
     }
 
 }
