@@ -17,14 +17,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-/**
- * A generic Radial Menu Screen that displays a center item and a ring of surrounding items.
- * Moved from piggy-build to piggy-lib for shared use.
- * * @param <T> The type of the item (usually an Enum).
- */
 public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
-    // Constants for UI sizing
     private static final int ICON_SIZE = 16;
     private static final float INNER_RADIUS = 12f;
     private static final float OUTER_RADIUS = 34f;
@@ -32,15 +26,18 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
     private final T centerItem;
     private final List<T> radialItems;
-    private final Consumer<T> onSelectionChanged; // Callback when selection changes
+    private final Consumer<T> onSelectionChanged; 
     private final Function<T, Component> extraInfoProvider;
-    private final Runnable onCloseCallback; // Callback when menu closes
-    private final InputConstants.Key triggerKey; // The key holding the menu open
+    private final Runnable onCloseCallback;
+    private final InputConstants.Key triggerKey;
     private final Predicate<Double> onScrollCallback;
+    
+    private final Predicate<T> isItemEnabled;
+    private final Consumer<T> onBlockedAction;
 
     private T selectedItem;
-    
-    // Default color if config isn't available, though we usually have PiggyClientConfig
+    private T hoveredItem;
+
     private final Color highlightColor;
 
     public GenericRadialMenuScreen(Component title,
@@ -51,24 +48,29 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             Consumer<T> onSelectionChanged,
             Runnable onCloseCallback,
             Function<T, Component> extraInfoProvider,
-            Predicate<Double> onScrollCallback) {
+            Predicate<Double> onScrollCallback,
+            Predicate<T> isItemEnabled,
+            Consumer<T> onBlockedAction) {
         super(title);
         this.centerItem = centerItem;
         this.radialItems = radialItems;
         this.selectedItem = currentSelection;
+        this.hoveredItem = currentSelection;
         this.triggerKey = triggerKey;
         this.onSelectionChanged = onSelectionChanged;
         this.onCloseCallback = onCloseCallback;
         this.extraInfoProvider = extraInfoProvider;
         this.onScrollCallback = onScrollCallback;
+        this.isItemEnabled = isItemEnabled != null ? isItemEnabled : (t) -> true;
+        this.onBlockedAction = onBlockedAction;
         
-        // We can't access specific mod configs here easily without dependency cycles,
-        // so we could either pass the color in or just use a default/white.
-        // For now, let's default to a standard cyan-ish if we can't find a config,
-        // but ideally this should be passed in constructor.
-        // I will use a hardcoded default here to keep the constructor simple for migration,
-        // or we can allow the caller to set it.
         this.highlightColor = new Color(0, 255, 230, 100); 
+    }
+    
+    public GenericRadialMenuScreen(Component title, T center, List<T> radials, T current, 
+            InputConstants.Key key, Consumer<T> onChange, Runnable onClose, 
+            Function<T, Component> info, Predicate<Double> scroll) {
+        this(title, center, radials, current, key, onChange, onClose, info, scroll, null, null);
     }
 
     @Override
@@ -92,6 +94,11 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     @Override
     public void tick() {
         if (!isTriggerKeyPressed()) {
+            if (hoveredItem != null && !isItemEnabled.test(hoveredItem)) {
+                if (onBlockedAction != null) {
+                    onBlockedAction.accept(hoveredItem);
+                }
+            } 
             this.onClose();
         }
     }
@@ -118,20 +125,22 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         this.renderBackground(graphics, mouseX, mouseY, partialTick);
         int cx = width / 2;
         int cy = height / 2;
-        updateSelection(mouseX, mouseY, cx, cy);
+        
+        updateHover(mouseX, mouseY, cx, cy);
+        
         renderBackgroundGeometry(graphics, cx, cy);
         renderIcons(graphics, cx, cy);
     }
 
-    private void updateSelection(int mx, int my, int cx, int cy) {
+    private void updateHover(int mx, int my, int cx, int cy) {
         double dx = mx - cx;
         double dy = my - cy;
         double dist = Math.sqrt(dx * dx + dy * dy);
 
-        T newSelection;
+        T candidate;
 
         if (dist < INNER_RADIUS) {
-            newSelection = centerItem;
+            candidate = centerItem;
         } else {
             double angle = Math.atan2(dy, dx) - Math.toRadians(-90);
             if (angle < 0)
@@ -139,11 +148,13 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
             double anglePerItem = (2 * Math.PI) / radialItems.size();
             int index = (int) (angle / anglePerItem) % radialItems.size();
-            newSelection = radialItems.get(index);
+            candidate = radialItems.get(index);
         }
+        
+        this.hoveredItem = candidate;
 
-        if (newSelection != selectedItem) {
-            selectedItem = newSelection;
+        if (isItemEnabled.test(candidate) && candidate != selectedItem) {
+            selectedItem = candidate;
             if (onSelectionChanged != null) {
                 onSelectionChanged.accept(selectedItem);
             }
@@ -166,19 +177,23 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
         double anglePerItem = (2 * Math.PI) / radialItems.size();
         for (int i = 0; i < radialItems.size(); i++) {
-            float r = 1f;
-            float g = 1f;
-            float b = 1f;
-            float a = 0.3f;
+            T item = radialItems.get(i);
+            boolean isHovered = (item == hoveredItem);
+            boolean isSelected = (item == selectedItem);
+            boolean enabled = isItemEnabled.test(item);
+
+            float r = 1f, g = 1f, b = 1f, a = 0.3f;
             
-            if ((radialItems.get(i) == selectedItem)) { 
-                // Use the hardcoded default or pass it in. 
-                // Since this is generic, we rely on the caller or default.
+            if (isHovered) {
+                if (enabled) {
+                    float[] rgba = highlightColor.getComponents(null);
+                    r = rgba[0]; g = rgba[1]; b = rgba[2]; a = 0.6f;
+                } else {
+                    r = 0.8f; g = 0.2f; b = 0.2f; a = 0.4f; 
+                }
+            } else if (isSelected) {
                 float[] rgba = highlightColor.getComponents(null);
-                r = rgba[0];
-                g = rgba[1];
-                b = rgba[2];
-                a = 0.6f;
+                r = rgba[0]; g = rgba[1]; b = rgba[2]; a = 0.4f;
             }
 
             double start = (i * anglePerItem) - Math.toRadians(90);
@@ -202,10 +217,9 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             int x = (int) (cx + Math.cos(midAngle) * ICON_DISTANCE) - (ICON_SIZE / 2);
             int y = (int) (cy + Math.sin(midAngle) * ICON_DISTANCE) - (ICON_SIZE / 2);
 
-            boolean isSelected = (item == selectedItem);
-            drawItemIcon(graphics, item, x, y);
-
-            if (isSelected && extraInfoProvider != null) {
+            drawItemIcon(graphics, item, x, y, item == selectedItem);
+            
+            if (item == selectedItem && isItemEnabled.test(item) && extraInfoProvider != null) {
                 Component info = extraInfoProvider.apply(item);
                 if (info != null) {
                     drawExtraInfo(graphics, info, x, y, midAngle);
@@ -213,7 +227,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             }
         }
 
-        drawItemIcon(graphics, centerItem, cx - (ICON_SIZE / 2), cy - (ICON_SIZE / 2));
+        drawItemIcon(graphics, centerItem, cx - (ICON_SIZE / 2), cy - (ICON_SIZE / 2), centerItem == selectedItem);
     }
 
     private void drawExtraInfo(GuiGraphics graphics, Component text, int iconX, int iconY, double angleRad) {
@@ -228,11 +242,13 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         graphics.drawString(this.font, text, textX, textY, 0xFFFFFF, true);
     }
 
-    private void drawItemIcon(GuiGraphics graphics, T item, int x, int y) {
-        boolean selected = (item == selectedItem);
+    private void drawItemIcon(GuiGraphics graphics, T item, int x, int y, boolean selected) {
         RenderSystem.enableBlend();
+        boolean enabled = isItemEnabled.test(item);
 
-        if (selected) {
+        if (!enabled) {
+             RenderSystem.setShaderColor(0.5f, 0.5f, 0.5f, 0.8f);
+        } else if (selected) {
             float[] rgba = highlightColor.getComponents(null);
             RenderSystem.setShaderColor(rgba[0], rgba[1], rgba[2], 1.0f);
         } else {
