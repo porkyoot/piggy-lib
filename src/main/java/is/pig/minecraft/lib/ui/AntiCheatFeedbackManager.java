@@ -22,7 +22,9 @@ public class AntiCheatFeedbackManager {
 
     // Track last blocked action for icon display
     private long lastBlockedTime = 0;
+    @SuppressWarnings("unused")
     private String lastBlockedFeatureId = null;
+    @SuppressWarnings("unused")
     private BlockReason lastBlockedReason = null;
 
     // Track which features have shown explanation messages this session
