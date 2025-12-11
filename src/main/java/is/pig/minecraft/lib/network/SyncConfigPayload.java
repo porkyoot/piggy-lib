@@ -47,38 +47,13 @@ public record SyncConfigPayload(boolean allowCheats, Map<String, Boolean> featur
                     PiggyClientConfig config = PiggyClientConfig.getInstance();
                     config.serverAllowCheats = payload.allowCheats();
                     config.serverFeatures = payload.features();
-                    
+
+                    // Notify any registered listeners so optional modules (PiggyBuild,
+                    // PiggyInventory, etc.) can react and copy values into their own
+                    // config instances if they need to.
+                    config.notifyConfigSyncListeners(payload.allowCheats(), payload.features());
+
                     PiggyLib.LOGGER.info("[ANTI-CHEAT DEBUG] Received server config: allowCheats={}, features={}", payload.allowCheats(), payload.features());
-                    PiggyLib.LOGGER.info("[ANTI-CHEAT DEBUG] Updated PiggyClientConfig - serverAllowCheats: {}, serverFeatures: {}", config.serverAllowCheats, config.serverFeatures);
-                    
-                    // IMPORTANT: If PiggyBuild is loaded, also update its config instance
-                    // This ensures anti-cheat enforcement works in PiggyBuild
-                    try {
-                        Class<?> piggyBuildConfigClass = Class.forName("is.pig.minecraft.build.config.PiggyBuildConfig");
-                        Object piggyBuildConfig = piggyBuildConfigClass.getMethod("getInstance").invoke(null);
-                        if (piggyBuildConfig instanceof PiggyClientConfig) {
-                            PiggyClientConfig buildConfig = (PiggyClientConfig) piggyBuildConfig;
-                            buildConfig.serverAllowCheats = payload.allowCheats();
-                            buildConfig.serverFeatures = payload.features();
-                            PiggyLib.LOGGER.info("[ANTI-CHEAT DEBUG] Also updated PiggyBuildConfig instance");
-                        }
-                    } catch (Exception e) {
-                        // PiggyBuild not loaded or error accessing it - that's fine
-                    }
-                    
-                    // Also update PiggyInventoryConfig if loaded
-                    try {
-                        Class<?> piggyInvConfigClass = Class.forName("is.pig.minecraft.inventory.config.PiggyConfig");
-                        Object piggyInvConfig = piggyInvConfigClass.getMethod("getInstance").invoke(null);
-                        if (piggyInvConfig instanceof PiggyClientConfig) {
-                            PiggyClientConfig invConfig = (PiggyClientConfig) piggyInvConfig;
-                            invConfig.serverAllowCheats = payload.allowCheats();
-                            invConfig.serverFeatures = payload.features();
-                            PiggyLib.LOGGER.info("[ANTI-CHEAT DEBUG] Also updated PiggyInventoryConfig instance");
-                        }
-                    } catch (Exception e) {
-                        // PiggyInventory not loaded or error accessing it - that's fine
-                    }
                 });
             }
         );

@@ -1,5 +1,9 @@
 package is.pig.minecraft.lib.config;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 /**
  * Configuration data model for Piggy Build.
  * Holds the state of user settings.
@@ -13,6 +17,27 @@ public class PiggyClientConfig {
     public transient boolean serverAllowCheats = true; // Runtime override from server
     public transient java.util.Map<String, Boolean> serverFeatures = new java.util.HashMap<>(); // Runtime feature
                                                                                                 // overrides
+
+    // --- Listener support ---
+    private final List<ConfigSyncListener> syncListeners = new CopyOnWriteArrayList<>();
+
+    public void registerConfigSyncListener(ConfigSyncListener listener) {
+        if (listener != null) syncListeners.add(listener);
+    }
+
+    public void unregisterConfigSyncListener(ConfigSyncListener listener) {
+        if (listener != null) syncListeners.remove(listener);
+    }
+
+    public void notifyConfigSyncListeners(boolean allowCheats, Map<String, Boolean> features) {
+        for (ConfigSyncListener l : syncListeners) {
+            try {
+                l.onServerConfigSynced(allowCheats, features);
+            } catch (Throwable t) {
+                // Swallow exceptions from listeners to avoid breaking the notification loop
+            }
+        }
+    }
 
     // --- SINGLETON ACCESS ---
 
