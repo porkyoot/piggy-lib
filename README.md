@@ -1,3 +1,5 @@
+[![build](https://github.com/porkyoot/piggy-lib/actions/workflows/build.yml/badge.svg)](https://github.com/porkyoot/piggy-lib/actions/workflows/build.yml)
+
 # Fabric Example Mod
 
 ## Setup
