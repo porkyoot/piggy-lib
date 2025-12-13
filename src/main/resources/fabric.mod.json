@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"is.pig.minecraft.lib.PiggyLib"
+		],
+		"client": [
+			"is.pig.minecraft.lib.PiggyLibClient"
 		]
 	},
 	"mixins": [

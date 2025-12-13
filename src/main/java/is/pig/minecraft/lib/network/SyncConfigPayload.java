@@ -33,29 +33,40 @@ public record SyncConfigPayload(boolean allowCheats, Map<String, Boolean> featur
         return TYPE;
     }
 
-    public static void registerPacket(){
+    private static boolean registered = false;
+
+    public static void registerPacket() {
+        if (registered)
+            return;
+        registered = true;
+
         // Register the payload type first
-        //ResourceLocation PACKET_ID = ResourceLocation.fromNamespaceAndPath("piggy-lib", "sync_config");
-        PayloadTypeRegistry.playS2C().register(SyncConfigPayload.TYPE, SyncConfigPayload.CODEC);
+        // ResourceLocation PACKET_ID =
+        // ResourceLocation.fromNamespaceAndPath("piggy-lib", "sync_config");
+        try {
+            PayloadTypeRegistry.playS2C().register(SyncConfigPayload.TYPE, SyncConfigPayload.CODEC);
+        } catch (IllegalArgumentException e) {
+            PiggyLib.LOGGER.warn("Packet type already registered, skipping: {}", e.getMessage());
+        }
 
         // Register the SINGLE global receiver (removed duplicate)
         ClientPlayNetworking.registerGlobalReceiver(
-            SyncConfigPayload.TYPE, 
-            (payload, context) -> {
-                // Execute on the main thread to ensure thread-safety
-                context.client().execute(() -> {
-                    PiggyClientConfig config = PiggyClientConfig.getInstance();
-                    config.serverAllowCheats = payload.allowCheats();
-                    config.serverFeatures = payload.features();
+                SyncConfigPayload.TYPE,
+                (payload, context) -> {
+                    // Execute on the main thread to ensure thread-safety
+                    context.client().execute(() -> {
+                        PiggyClientConfig config = PiggyClientConfig.getInstance();
+                        config.serverAllowCheats = payload.allowCheats();
+                        config.serverFeatures = payload.features();
 
-                    // Notify any registered listeners so optional modules (PiggyBuild,
-                    // PiggyInventory, etc.) can react and copy values into their own
-                    // config instances if they need to.
-                    config.notifyConfigSyncListeners(payload.allowCheats(), payload.features());
+                        // Notify any registered listeners so optional modules (PiggyBuild,
+                        // PiggyInventory, etc.) can react and copy values into their own
+                        // config instances if they need to.
+                        config.notifyConfigSyncListeners(payload.allowCheats(), payload.features());
 
-                    PiggyLib.LOGGER.info("[ANTI-CHEAT DEBUG] Received server config: allowCheats={}, features={}", payload.allowCheats(), payload.features());
+                        PiggyLib.LOGGER.info("[ANTI-CHEAT DEBUG] Received server config: allowCheats={}, features={}",
+                                payload.allowCheats(), payload.features());
+                    });
                 });
-            }
-        );
     }
 }
