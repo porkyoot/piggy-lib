@@ -22,6 +22,68 @@ jobs:
         with:
           path: piggy-lib
 
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing piggy-lib v$VERSION"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update version in parent repo and all projects
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Update parent gradle.properties
+          sed -i "s/^lib_version=.*/lib_version=$VERSION/" gradle.properties
+          
+          # Update all project READMEs
+          sed -i "s|\\*\\*\\[Piggy Lib\\](https://github.com/porkyoot/piggy-lib)\\*\\*: >=.*|**[Piggy Lib](https://github.com/porkyoot/piggy-lib)**: >=$VERSION|" piggy-admin/README.md
+          sed -i "s|\\*\\*\\[Piggy Lib\\](https://github.com/porkyoot/piggy-lib)\\*\\*: >=.*|**[Piggy Lib](https://github.com/porkyoot/piggy-lib)**: >=$VERSION|" piggy-build/README.md
+          sed -i "s|\\*\\*\\[Piggy Lib\\](https://github.com/porkyoot/piggy-lib)\\*\\*: >=.*|**[Piggy Lib](https://github.com/porkyoot/piggy-lib)**: >=$VERSION|" piggy-inventory/README.md
+          
+          # Update all fabric.mod.json files
+          sed -i "s/\"piggy-lib\": \">=.*\"/\"piggy-lib\": \">=$VERSION\"/" piggy-admin/src/main/resources/fabric.mod.json
+          sed -i "s/\"piggy-lib\": \">=.*\"/\"piggy-lib\": \">=$VERSION\"/" piggy-build/src/main/resources/fabric.mod.json
+          sed -i "s/\"piggy-lib\": \">=.*\"/\"piggy-lib\": \">=$VERSION\"/" piggy-inventory/src/main/resources/fabric.mod.json
+          
+          # Update gametest fabric.mod.json if they exist
+          [ -f "piggy-admin/src/gametest/resources/fabric.mod.json" ] && \
+            sed -i "s/\"piggy-lib\": \">=.*\"/\"piggy-lib\": \">=$VERSION\"/" piggy-admin/src/gametest/resources/fabric.mod.json || true
+          [ -f "piggy-build/src/gametest/resources/fabric.mod.json" ] && \
+            sed -i "s/\"piggy-lib\": \">=.*\"/\"piggy-lib\": \">=$VERSION\"/" piggy-build/src/gametest/resources/fabric.mod.json || true
+          [ -f "piggy-inventory/src/gametest/resources/fabric.mod.json" ] && \
+            sed -i "s/\"piggy-lib\": \">=.*\"/\"piggy-lib\": \">=$VERSION\"/" piggy-inventory/src/gametest/resources/fabric.mod.json || true
+          
+          # Commit in parent repo
+          git add gradle.properties
+          git commit -m "chore: bump piggy-lib to v$VERSION"
+          
+          # Commit in each submodule
+          for submodule in piggy-admin piggy-build piggy-inventory; do
+            cd "$submodule"
+            if ! git diff --quiet; then
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git add README.md src/main/resources/fabric.mod.json src/gametest/resources/fabric.mod.json 2>/dev/null || true
+              git commit -m "chore: update piggy-lib dependency to v$VERSION" || true
+              echo "✓ Committed changes in $submodule"
+            fi
+            cd ..
+          done
+          
+          # Update parent to reference new submodule commits and create tag
+          git add piggy-admin piggy-build piggy-inventory
+          git commit --amend -m "chore: bump piggy-lib to v$VERSION"
+          TAG="piggy-lib-v${VERSION}"
+          git tag "$TAG"
+          git push origin main
+          git push origin "$TAG"
+
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
 
