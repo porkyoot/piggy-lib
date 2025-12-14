@@ -61,7 +61,7 @@ jobs:
           
           # Commit in parent repo
           git add gradle.properties
-          git commit -m "chore: bump piggy-lib to v$VERSION"
+          git diff --cached --quiet || git commit -m "chore: bump piggy-lib to v$VERSION"
           
           # Commit in each submodule
           for submodule in piggy-admin piggy-build piggy-inventory; do
@@ -77,12 +77,22 @@ jobs:
           done
           
           # Update parent to reference new submodule commits and create tag
-          git add piggy-admin piggy-build piggy-inventory
-          git commit --amend -m "chore: bump piggy-lib to v$VERSION"
+          git add piggy-admin piggy-build piggy-inventory 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit --amend --no-edit 2>/dev/null || git commit -m "chore: bump piggy-lib to v$VERSION"
+          fi
+          
           TAG="piggy-lib-v${VERSION}"
-          git tag "$TAG"
-          git push origin main
-          git push origin "$TAG"
+          
+          # Only create tag if it doesn't exist
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag "$TAG"
+            git push origin main
+            git push origin "$TAG"
+          else
+            echo "Tag $TAG already exists, skipping tag creation"
+            git push origin main || echo "Nothing to push"
+          fi
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
