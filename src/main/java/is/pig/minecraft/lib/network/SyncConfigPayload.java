@@ -9,7 +9,6 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Map;
 
 import is.pig.minecraft.lib.PiggyLib;
-import is.pig.minecraft.lib.config.PiggyClientConfig;
 
 public record SyncConfigPayload(boolean allowCheats, Map<String, Boolean> features) implements CustomPacketPayload {
     public static final Type<SyncConfigPayload> TYPE = new Type<>(
@@ -54,15 +53,11 @@ public record SyncConfigPayload(boolean allowCheats, Map<String, Boolean> featur
                 SyncConfigPayload.TYPE,
                 (payload, context) -> {
                     // Execute on the main thread to ensure thread-safety
+                    // Execute on the main thread to ensure thread-safety
                     context.client().execute(() -> {
-                        PiggyClientConfig config = PiggyClientConfig.getInstance();
-                        config.serverAllowCheats = payload.allowCheats();
-                        config.serverFeatures = payload.features();
-
-                        // Notify any registered listeners so optional modules (PiggyBuild,
-                        // PiggyInventory, etc.) can react and copy values into their own
-                        // config instances if they need to.
-                        config.notifyConfigSyncListeners(payload.allowCheats(), payload.features());
+                        // Use the shared Registry to notify all registered config instances
+                        is.pig.minecraft.lib.config.PiggyConfigRegistry.getInstance()
+                                .notifyConfigSynced(payload.allowCheats(), payload.features());
 
                         PiggyLib.LOGGER.info("[ANTI-CHEAT DEBUG] Received server config: allowCheats={}, features={}",
                                 payload.allowCheats(), payload.features());

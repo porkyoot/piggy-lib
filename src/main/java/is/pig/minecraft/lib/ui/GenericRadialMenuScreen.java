@@ -26,12 +26,12 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
     private final T centerItem;
     private final List<T> radialItems;
-    private final Consumer<T> onSelectionChanged; 
+    private final Consumer<T> onSelectionChanged;
     private final Function<T, Component> extraInfoProvider;
     private final Runnable onCloseCallback;
     private final InputConstants.Key triggerKey;
     private final Predicate<Double> onScrollCallback;
-    
+
     private final Predicate<T> isItemEnabled;
     private final Consumer<T> onBlockedAction;
 
@@ -63,12 +63,12 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         this.onScrollCallback = onScrollCallback;
         this.isItemEnabled = isItemEnabled != null ? isItemEnabled : (t) -> true;
         this.onBlockedAction = onBlockedAction;
-        
-        this.highlightColor = new Color(0, 255, 230, 100); 
+
+        this.highlightColor = new Color(0, 255, 230, 100);
     }
-    
-    public GenericRadialMenuScreen(Component title, T center, List<T> radials, T current, 
-            InputConstants.Key key, Consumer<T> onChange, Runnable onClose, 
+
+    public GenericRadialMenuScreen(Component title, T center, List<T> radials, T current,
+            InputConstants.Key key, Consumer<T> onChange, Runnable onClose,
             Function<T, Component> info, Predicate<Double> scroll) {
         this(title, center, radials, current, key, onChange, onClose, info, scroll, null, null);
     }
@@ -98,7 +98,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
                 if (onBlockedAction != null) {
                     onBlockedAction.accept(hoveredItem);
                 }
-            } 
+            }
             this.onClose();
         }
     }
@@ -125,9 +125,9 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         this.renderBackground(graphics, mouseX, mouseY, partialTick);
         int cx = width / 2;
         int cy = height / 2;
-        
+
         updateHover(mouseX, mouseY, cx, cy);
-        
+
         renderBackgroundGeometry(graphics, cx, cy);
         renderIcons(graphics, cx, cy);
     }
@@ -150,7 +150,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             int index = (int) (angle / anglePerItem) % radialItems.size();
             candidate = radialItems.get(index);
         }
-        
+
         this.hoveredItem = candidate;
 
         if (isItemEnabled.test(candidate) && candidate != selectedItem) {
@@ -183,17 +183,26 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             boolean enabled = isItemEnabled.test(item);
 
             float r = 1f, g = 1f, b = 1f, a = 0.3f;
-            
+
             if (isHovered) {
                 if (enabled) {
                     float[] rgba = highlightColor.getComponents(null);
-                    r = rgba[0]; g = rgba[1]; b = rgba[2]; a = 0.6f;
+                    r = rgba[0];
+                    g = rgba[1];
+                    b = rgba[2];
+                    a = 0.6f;
                 } else {
-                    r = 0.8f; g = 0.2f; b = 0.2f; a = 0.4f; 
+                    r = 0.8f;
+                    g = 0.2f;
+                    b = 0.2f;
+                    a = 0.4f;
                 }
             } else if (isSelected) {
                 float[] rgba = highlightColor.getComponents(null);
-                r = rgba[0]; g = rgba[1]; b = rgba[2]; a = 0.4f;
+                r = rgba[0];
+                g = rgba[1];
+                b = rgba[2];
+                a = 0.4f;
             }
 
             double start = (i * anglePerItem) - Math.toRadians(90);
@@ -210,6 +219,9 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     }
 
     private void renderIcons(GuiGraphics graphics, int cx, int cy) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(0, 0, 20); // Render above background
+
         double anglePerItem = (2 * Math.PI) / radialItems.size();
         for (int i = 0; i < radialItems.size(); i++) {
             T item = radialItems.get(i);
@@ -218,7 +230,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
             int y = (int) (cy + Math.sin(midAngle) * ICON_DISTANCE) - (ICON_SIZE / 2);
 
             drawItemIcon(graphics, item, x, y, item == selectedItem);
-            
+
             if (item == selectedItem && isItemEnabled.test(item) && extraInfoProvider != null) {
                 Component info = extraInfoProvider.apply(item);
                 if (info != null) {
@@ -228,6 +240,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         }
 
         drawItemIcon(graphics, centerItem, cx - (ICON_SIZE / 2), cy - (ICON_SIZE / 2), centerItem == selectedItem);
+        graphics.pose().popPose();
     }
 
     private void drawExtraInfo(GuiGraphics graphics, Component text, int iconX, int iconY, double angleRad) {
@@ -247,7 +260,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         boolean enabled = isItemEnabled.test(item);
 
         if (!enabled) {
-             RenderSystem.setShaderColor(0.5f, 0.5f, 0.5f, 0.8f);
+            RenderSystem.setShaderColor(0.5f, 0.5f, 0.5f, 0.8f);
         } else if (selected) {
             float[] rgba = highlightColor.getComponents(null);
             RenderSystem.setShaderColor(rgba[0], rgba[1], rgba[2], 1.0f);

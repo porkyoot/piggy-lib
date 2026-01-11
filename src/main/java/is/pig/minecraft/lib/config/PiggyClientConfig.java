@@ -1,16 +1,28 @@
 package is.pig.minecraft.lib.config;
 
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Configuration data model for Piggy Build.
  * Holds the state of user settings.
  */
-public class PiggyClientConfig {
+public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
+    // Singleton instance
+    private static PiggyClientConfig<?> instance;
 
-    private static PiggyClientConfig INSTANCE = new PiggyClientConfig();
+    public static PiggyClientConfig<?> getInstance() {
+        return instance;
+    }
+
+    protected static void setInstance(PiggyClientConfig<?> inst) {
+        instance = inst;
+    }
+
+    private final java.util.List<java.util.function.BiConsumer<Boolean, Map<String, Boolean>>> syncListeners = new java.util.ArrayList<>();
+
+    public void registerConfigSyncListener(java.util.function.BiConsumer<Boolean, Map<String, Boolean>> listener) {
+        this.syncListeners.add(listener);
+    }
 
     // Safety settings
     private boolean noCheatingMode = true;
@@ -18,42 +30,26 @@ public class PiggyClientConfig {
     public transient java.util.Map<String, Boolean> serverFeatures = new java.util.HashMap<>(); // Runtime feature
                                                                                                 // overrides
 
-    // --- Listener support ---
-    // Marked transient to prevent Gson from trying to serialize listeners to the config file
-    private final transient List<ConfigSyncListener> syncListeners = new CopyOnWriteArrayList<>();
-
-    public void registerConfigSyncListener(ConfigSyncListener listener) {
-        if (listener != null) syncListeners.add(listener);
-    }
-
-    public void unregisterConfigSyncListener(ConfigSyncListener listener) {
-        if (listener != null) syncListeners.remove(listener);
-    }
-
-    public void notifyConfigSyncListeners(boolean allowCheats, Map<String, Boolean> features) {
-        for (ConfigSyncListener l : syncListeners) {
-            try {
-                l.onServerConfigSynced(allowCheats, features);
-            } catch (Throwable t) {
-                // Swallow exceptions from listeners to avoid breaking the notification loop
-            }
-        }
-    }
-
-    // --- SINGLETON ACCESS ---
-
-    public static PiggyClientConfig getInstance() {
-        return INSTANCE;
+    public PiggyClientConfig() {
+        // Automatically register with the registry upon creation?
+        // Or let the subclass do it explicitely?
+        // Explicit is better for control, but auto ensures we don't forget.
+        // Let's rely on explicit registration in Subclass static instantiation or
+        // constructor if singleton.
     }
 
     /**
-     * Updates the singleton instance. Should only be called by ConfigPersistence.
-     * * @param instance The new instance loaded from disk.
+     * Called when the server synchronizes config settings (anti-cheat).
+     * Subclasses can override to perform additional logic, but should call super.
      */
-    public static void setInstance(PiggyClientConfig instance) {
-        INSTANCE = instance;
-    }
+    public void onServerSync(boolean allowCheats, Map<String, Boolean> features) {
+        this.serverAllowCheats = allowCheats;
+        this.serverFeatures = features;
 
+        for (java.util.function.BiConsumer<Boolean, Map<String, Boolean>> listener : syncListeners) {
+            listener.accept(allowCheats, features);
+        }
+    }
 
     public boolean isNoCheatingMode() {
         return noCheatingMode;
