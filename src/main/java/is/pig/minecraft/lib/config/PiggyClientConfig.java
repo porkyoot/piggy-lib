@@ -18,7 +18,7 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
         instance = inst;
     }
 
-    private final java.util.List<java.util.function.BiConsumer<Boolean, Map<String, Boolean>>> syncListeners = new java.util.ArrayList<>();
+    private final transient java.util.List<java.util.function.BiConsumer<Boolean, Map<String, Boolean>>> syncListeners = new java.util.ArrayList<>();
 
     public void registerConfigSyncListener(java.util.function.BiConsumer<Boolean, Map<String, Boolean>> listener) {
         this.syncListeners.add(listener);
