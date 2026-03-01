@@ -1,6 +1,5 @@
 package is.pig.minecraft.lib.ui;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -55,16 +54,14 @@ public class AntiCheatHudOverlay {
         // Get alpha for fade animation
         float alpha = manager.getIconAlpha();
 
-        // Set render color with alpha
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, alpha);
+        // Set render color with alpha via GuiGraphics instead of RenderSystem
+        // This prevents GL state from leaking or corrupting batched UI rendering
+        graphics.setColor(1.0f, 1.0f, 1.0f, alpha);
 
         // Render the icon
         graphics.blit(BLOCKED_ICON, x, y, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
 
-        // Reset shader color
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-        RenderSystem.disableBlend();
+        // Reset color in GuiGraphics
+        graphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
