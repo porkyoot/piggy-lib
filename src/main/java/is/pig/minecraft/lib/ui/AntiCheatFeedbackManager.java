@@ -3,8 +3,6 @@ package is.pig.minecraft.lib.ui;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -14,7 +12,6 @@ import java.util.Set;
  * Tracks blocked actions and coordinates UI feedback (icon + chat messages).
  */
 public class AntiCheatFeedbackManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger("piggy-lib");
     private static final AntiCheatFeedbackManager INSTANCE = new AntiCheatFeedbackManager();
 
     // Icon display duration in milliseconds
@@ -57,8 +54,6 @@ public class AntiCheatFeedbackManager {
             showExplanationMessage(featureId, reason);
             messagesShown.add(featureId);
         }
-
-        LOGGER.debug("Feature '{}' blocked: {}", featureId, reason);
     }
 
     /**
@@ -146,6 +141,5 @@ public class AntiCheatFeedbackManager {
      */
     public void resetMessageTracking() {
         messagesShown.clear();
-        LOGGER.debug("Reset anti-cheat message tracking");
     }
 }
