@@ -22,6 +22,10 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
     private static final float INNER_RADIUS = 12f;
     private static final float OUTER_RADIUS = 34f;
     private static final float ICON_DISTANCE = 24f;
+    
+    private static final float SUBMENU_INNER_RADIUS = 38f;
+    private static final float SUBMENU_OUTER_RADIUS = 60f;
+    private static final float SUBMENU_ICON_DISTANCE = 49f;
 
     private final T centerItem;
     private final List<T> radialItems;
@@ -127,8 +131,8 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
         updateHover(mouseX, mouseY, cx, cy);
 
-        renderBackgroundGeometry(graphics, cx, cy);
-        renderIcons(graphics, cx, cy);
+        renderBackgroundGeometry(graphics, cx, cy, mouseX, mouseY);
+        renderIcons(graphics, cx, cy, mouseX, mouseY);
     }
 
     private void updateHover(int mx, int my, int cx, int cy) {
@@ -147,7 +151,51 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
             double anglePerItem = (2 * Math.PI) / radialItems.size();
             int index = (int) (angle / anglePerItem) % radialItems.size();
-            candidate = radialItems.get(index);
+            T parent = radialItems.get(index);
+            
+            List<? extends RadialMenuItem> subItems = parent.getSubMenuItems();
+            boolean isSubmenuActive = false;
+            
+            // Check if the currently selected or hovered item belongs to this parent's hierarchy
+            if (hoveredItem == parent || selectedItem == parent) {
+                isSubmenuActive = true;
+            } else {
+                for (RadialMenuItem sub : subItems) {
+                    if (hoveredItem == sub || selectedItem == sub) {
+                        isSubmenuActive = true;
+                        break;
+                    }
+                }
+            }
+
+            if (dist >= OUTER_RADIUS && !subItems.isEmpty() && isSubmenuActive) {
+                double startAngle = index * anglePerItem;
+                double midAngle = startAngle + (anglePerItem / 2);
+                
+                // We want the submenus to take up a maximum of 80 degrees total, centered on the parent's midAngle
+                double maxSubAngleTotal = Math.min(anglePerItem, Math.toRadians(80));
+                double subAnglePerItem = maxSubAngleTotal / subItems.size();
+                double subStartAngle = midAngle - (maxSubAngleTotal / 2);
+                
+                // Normalize absolute angle to be relative to subStartAngle
+                double relAngle = angle - subStartAngle;
+                // Handle wrap-around gracefully for relative comparisons
+                while (relAngle < -Math.PI) relAngle += 2 * Math.PI;
+                while (relAngle > Math.PI) relAngle -= 2 * Math.PI;
+                
+                if (relAngle >= 0 && relAngle <= maxSubAngleTotal) {
+                    int subIndex = (int) (relAngle / subAnglePerItem);
+                    if (subIndex >= 0 && subIndex < subItems.size()) {
+                        candidate = (T) subItems.get(subIndex);
+                    } else {
+                        candidate = parent;
+                    }
+                } else {
+                    candidate = parent;
+                }
+            } else {
+                candidate = parent;
+            }
         }
 
         this.hoveredItem = candidate;
@@ -160,7 +208,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         }
     }
 
-    private void renderBackgroundGeometry(GuiGraphics graphics, int cx, int cy) {
+    private void renderBackgroundGeometry(GuiGraphics graphics, int cx, int cy, int mx, int my) {
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
         poseStack.translate(0, 0, 10);
@@ -170,55 +218,108 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         VertexConsumer buffer = graphics.bufferSource().getBuffer(RenderType.gui());
         Matrix4f mat = poseStack.last().pose();
 
+        double dx = mx - cx;
+        double dy = my - cy;
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        double angle = Math.atan2(dy, dx) - Math.toRadians(-90);
+        if (angle < 0) angle += 2 * Math.PI;
+
         double anglePerItem = (2 * Math.PI) / radialItems.size();
+        int hoveredIndex = (int) (angle / anglePerItem) % radialItems.size();
+
         for (int i = 0; i < radialItems.size(); i++) {
             T item = radialItems.get(i);
-            boolean isHovered = (item == hoveredItem);
-            boolean isSelected = (item == selectedItem);
-            boolean enabled = isItemEnabled.test(item);
-
-            float r = 1f, g = 1f, b = 1f, a = 0.3f;
-
-            if (isHovered) {
-                if (enabled) {
-                    float[] rgba = highlightColor.getComponents(null);
-                    r = rgba[0];
-                    g = rgba[1];
-                    b = rgba[2];
-                    a = 0.6f;
-                } else {
-                    r = 0.8f;
-                    g = 0.2f;
-                    b = 0.2f;
-                    a = 0.4f;
-                }
-            } else if (isSelected) {
-                float[] rgba = highlightColor.getComponents(null);
-                r = rgba[0];
-                g = rgba[1];
-                b = rgba[2];
-                a = 0.4f;
-            }
-
+            
             double start = (i * anglePerItem) - Math.toRadians(90);
             double end = ((i + 1) * anglePerItem) - Math.toRadians(90);
             double gap = Math.toRadians(2);
 
-            drawArc(buffer, mat, cx, cy, INNER_RADIUS + 2, OUTER_RADIUS, start + gap, end - gap, r, g, b, a);
+            drawRegion(buffer, mat, cx, cy, INNER_RADIUS + 2, OUTER_RADIUS, start + gap, end - gap, item);
+            
+            List<? extends RadialMenuItem> subItems = item.getSubMenuItems();
+            
+            boolean isSubmenuActive = false;
+            // The submenu is visible if the mouse is hovering over the parent, hovering over a subitem, 
+            // or if a subitem is currently selected.
+            if (hoveredItem == item || selectedItem == item) {
+                isSubmenuActive = true;
+            } else {
+                for (RadialMenuItem sub : subItems) {
+                    if (hoveredItem == sub || selectedItem == sub) {
+                        isSubmenuActive = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (isSubmenuActive && !subItems.isEmpty()) {
+                double parentMidAngle = start + (anglePerItem / 2);
+                double maxSubAngleTotal = Math.min(anglePerItem, Math.toRadians(80));
+                double subAnglePerItem = maxSubAngleTotal / subItems.size();
+                double subStartAngle = parentMidAngle - (maxSubAngleTotal / 2);
+                
+                for (int j = 0; j < subItems.size(); j++) {
+                    T subItem = (T) subItems.get(j);
+                    double subStart = subStartAngle + (j * subAnglePerItem);
+                    double subEnd = subStartAngle + ((j + 1) * subAnglePerItem);
+                    drawRegion(buffer, mat, cx, cy, SUBMENU_INNER_RADIUS, SUBMENU_OUTER_RADIUS, subStart + gap, subEnd - gap, subItem);
+                }
+            }
         }
 
         graphics.bufferSource().endBatch(RenderType.gui());
         poseStack.popPose();
     }
 
-    private void renderIcons(GuiGraphics graphics, int cx, int cy) {
+    private void drawRegion(VertexConsumer buffer, Matrix4f mat, int cx, int cy, float rIn, float rOut, double start, double end, T item) {
+        boolean isHovered = (item == hoveredItem);
+        boolean isSelected = (item == selectedItem);
+        boolean enabled = isItemEnabled.test(item);
+
+        float r = 1f, g = 1f, b = 1f, a = 0.3f;
+
+        if (isHovered) {
+            if (enabled) {
+                float[] rgba = highlightColor.getComponents(null);
+                r = rgba[0];
+                g = rgba[1];
+                b = rgba[2];
+                a = 0.6f;
+            } else {
+                r = 0.8f;
+                g = 0.2f;
+                b = 0.2f;
+                a = 0.4f;
+            }
+        } else if (isSelected) {
+            float[] rgba = highlightColor.getComponents(null);
+            r = rgba[0];
+            g = rgba[1];
+            b = rgba[2];
+            a = 0.4f;
+        }
+
+        drawArc(buffer, mat, cx, cy, rIn, rOut, start, end, r, g, b, a);
+    }
+
+    private void renderIcons(GuiGraphics graphics, int cx, int cy, int mx, int my) {
         graphics.pose().pushPose();
         graphics.pose().translate(0, 0, 20); // Render above background
 
+        double dx = mx - cx;
+        double dy = my - cy;
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        double angle = Math.atan2(dy, dx) - Math.toRadians(-90);
+        if (angle < 0) angle += 2 * Math.PI;
+
         double anglePerItem = (2 * Math.PI) / radialItems.size();
+        int hoveredIndex = (int) (angle / anglePerItem) % radialItems.size();
+
         for (int i = 0; i < radialItems.size(); i++) {
             T item = radialItems.get(i);
-            double midAngle = (i * anglePerItem + (anglePerItem / 2)) - Math.toRadians(90);
+            double start = i * anglePerItem;
+            double midAngle = start + (anglePerItem / 2) - Math.toRadians(90);
+            
             int x = (int) (cx + Math.cos(midAngle) * ICON_DISTANCE) - (ICON_SIZE / 2);
             int y = (int) (cy + Math.sin(midAngle) * ICON_DISTANCE) - (ICON_SIZE / 2);
 
@@ -228,6 +329,42 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
                 Component info = extraInfoProvider.apply(item);
                 if (info != null) {
                     drawExtraInfo(graphics, info, x, y, midAngle);
+                }
+            }
+            
+            List<? extends RadialMenuItem> subItems = item.getSubMenuItems();
+            
+            boolean isSubmenuActive = false;
+            // Same logic as background geometry
+            if (hoveredItem == item || selectedItem == item) {
+                isSubmenuActive = true;
+            } else {
+                for (RadialMenuItem sub : subItems) {
+                    if (hoveredItem == sub || selectedItem == sub) {
+                        isSubmenuActive = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isSubmenuActive && !subItems.isEmpty()) {
+                double parentMidAngleAbsolute = start + (anglePerItem / 2);
+                double maxSubAngleTotal = Math.min(anglePerItem, Math.toRadians(80));
+                double subAnglePerItem = maxSubAngleTotal / subItems.size();
+                double subStartAngleAbsolute = parentMidAngleAbsolute - (maxSubAngleTotal / 2);
+
+                for (int j = 0; j < subItems.size(); j++) {
+                    T subItem = (T) subItems.get(j);
+                    double subMidAngle = subStartAngleAbsolute + (j * subAnglePerItem) + (subAnglePerItem / 2) - Math.toRadians(90);
+                    int sx = (int) (cx + Math.cos(subMidAngle) * SUBMENU_ICON_DISTANCE) - (ICON_SIZE / 2);
+                    int sy = (int) (cy + Math.sin(subMidAngle) * SUBMENU_ICON_DISTANCE) - (ICON_SIZE / 2);
+                    drawItemIcon(graphics, subItem, sx, sy, subItem == selectedItem);
+                    if (subItem == selectedItem && isItemEnabled.test(subItem) && extraInfoProvider != null) {
+                        Component info = extraInfoProvider.apply(subItem);
+                        if (info != null) {
+                            drawExtraInfo(graphics, info, sx, sy, subMidAngle);
+                        }
+                    }
                 }
             }
         }

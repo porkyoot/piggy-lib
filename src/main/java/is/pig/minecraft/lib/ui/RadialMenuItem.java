@@ -10,4 +10,8 @@ import net.minecraft.resources.ResourceLocation;
 public interface RadialMenuItem {
     ResourceLocation getIconLocation(boolean isSelected);
     Component getDisplayName();
+    
+    default java.util.List<? extends RadialMenuItem> getSubMenuItems() {
+        return java.util.Collections.emptyList();
+    }
 }
