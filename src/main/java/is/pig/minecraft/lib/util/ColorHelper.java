@@ -64,6 +64,7 @@ public class ColorHelper {
             return 0xFFFFFF;
 
         try {
+            @SuppressWarnings("resource")
             NativeImage image = (NativeImage) originalImageField.get(sprite.contents());
             if (image == null)
                 return 0xFFFFFF;
@@ -87,7 +88,6 @@ public class ColorHelper {
                     count++;
                 }
             }
-            image.close();
             if (count == 0)
                 return 0xFFFFFF;
             return FastColor.ARGB32.color(255, (int) (r / count), (int) (g / count), (int) (b / count));
