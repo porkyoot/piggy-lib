@@ -49,4 +49,13 @@ public class PiggyConfigRegistry {
             }
         }
     }
+    public void syncSharedSettings(PiggyClientConfig<?> source) {
+        for (PiggyClientConfig<?> config : configs) {
+            if (config != source) {
+                config.setNoCheatingModeInternal(source.isNoCheatingMode());
+                config.setTickDelayInternal(source.getTickDelay());
+                config.save();
+            }
+        }
+    }
 }

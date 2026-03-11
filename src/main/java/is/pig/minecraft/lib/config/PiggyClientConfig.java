@@ -28,6 +28,10 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
     private boolean noCheatingMode = true;
     public transient boolean serverAllowCheats = true; // Runtime override from server
     public transient java.util.Map<String, Boolean> serverFeatures = new java.util.HashMap<>(); // Runtime feature
+
+    private int tickDelay = 1;
+
+    public abstract void save();
                                                                                                 // overrides
 
     public PiggyClientConfig() {
@@ -57,6 +61,24 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
 
     public void setNoCheatingMode(boolean noCheatingMode) {
         this.noCheatingMode = noCheatingMode;
+        PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+
+    public void setNoCheatingModeInternal(boolean noCheatingMode) {
+        this.noCheatingMode = noCheatingMode;
+    }
+
+    public int getTickDelay() {
+        return tickDelay;
+    }
+
+    public void setTickDelay(int tickDelay) {
+        this.tickDelay = tickDelay;
+        PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+    
+    public void setTickDelayInternal(int tickDelay) {
+        this.tickDelay = tickDelay;
     }
 
     /**
