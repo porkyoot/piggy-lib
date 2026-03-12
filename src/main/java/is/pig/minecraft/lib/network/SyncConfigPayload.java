@@ -59,7 +59,7 @@ public record SyncConfigPayload(boolean allowCheats, Map<String, Boolean> featur
                         is.pig.minecraft.lib.config.PiggyConfigRegistry.getInstance()
                                 .notifyConfigSynced(payload.allowCheats(), payload.features());
 
-                        PiggyLib.LOGGER.info("[ANTI-CHEAT DEBUG] Received server config: allowCheats={}, features={}",
+                        PiggyLib.LOGGER.debug("[ANTI-CHEAT DEBUG] Received server config: allowCheats={}, features={}",
                                 payload.allowCheats(), payload.features());
                     });
                 });
