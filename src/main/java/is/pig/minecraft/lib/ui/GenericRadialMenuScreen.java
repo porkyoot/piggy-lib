@@ -16,6 +16,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+
+@SuppressWarnings("unused")
 public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
 
     private static final int ICON_SIZE = 16;
@@ -208,6 +210,7 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         }
     }
 
+    
     private void renderBackgroundGeometry(GuiGraphics graphics, int cx, int cy, int mx, int my) {
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
