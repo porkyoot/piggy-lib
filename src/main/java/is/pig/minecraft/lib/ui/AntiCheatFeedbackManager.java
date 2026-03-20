@@ -14,16 +14,6 @@ import java.util.Set;
 public class AntiCheatFeedbackManager {
     private static final AntiCheatFeedbackManager INSTANCE = new AntiCheatFeedbackManager();
 
-    // Icon display duration in milliseconds
-    private static final long ICON_DISPLAY_DURATION = 2500;
-
-    // Track last blocked action for icon display
-    private long lastBlockedTime = 0;
-    @SuppressWarnings("unused")
-    private String lastBlockedFeatureId = null;
-    @SuppressWarnings("unused")
-    private BlockReason lastBlockedReason = null;
-
     // Track which features have shown explanation messages this session
     private final Set<String> messagesShown = new HashSet<>();
 
@@ -42,57 +32,14 @@ public class AntiCheatFeedbackManager {
      * @param reason    Why the feature was blocked
      */
     public void onFeatureBlocked(String featureId, BlockReason reason) {
-        long currentTime = System.currentTimeMillis();
-
-        // Update icon display state
-        lastBlockedTime = currentTime;
-        lastBlockedFeatureId = featureId;
-        lastBlockedReason = reason;
+        // Trigger icon display in the centralized queue
+        AntiCheatHudOverlay.triggerBlockedIcon();
 
         // Show chat message if this is the first time for this feature
         if (!messagesShown.contains(featureId)) {
             showExplanationMessage(featureId, reason);
             messagesShown.add(featureId);
         }
-    }
-
-    /**
-     * Gets the current icon visibility (0.0 = invisible, 1.0 = fully visible).
-     * Uses fade in/out animation.
-     */
-    public float getIconAlpha() {
-        if (lastBlockedTime == 0) {
-            return 0.0f;
-        }
-
-        long elapsed = System.currentTimeMillis() - lastBlockedTime;
-
-        if (elapsed > ICON_DISPLAY_DURATION) {
-            return 0.0f;
-        }
-
-        // Fade in for first 200ms, stay solid, fade out for last 300ms
-        long fadeInDuration = 200;
-        long fadeOutStart = ICON_DISPLAY_DURATION - 300;
-
-        if (elapsed < fadeInDuration) {
-            // Fade in
-            return (float) elapsed / fadeInDuration;
-        } else if (elapsed > fadeOutStart) {
-            // Fade out
-            long fadeOutElapsed = elapsed - fadeOutStart;
-            return 1.0f - ((float) fadeOutElapsed / 300);
-        } else {
-            // Fully visible
-            return 1.0f;
-        }
-    }
-
-    /**
-     * Checks if the icon should be visible right now.
-     */
-    public boolean shouldShowIcon() {
-        return getIconAlpha() > 0.0f;
     }
 
     /**

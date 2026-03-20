@@ -8,5 +8,6 @@ public class PiggyLibClient implements ClientModInitializer {
     public void onInitializeClient() {
         PiggyLib.LOGGER.info("Initializing Piggy Lib Client");
         SyncConfigPayload.registerPacket();
+        is.pig.minecraft.lib.ui.IconQueueOverlay.register();
     }
 }
