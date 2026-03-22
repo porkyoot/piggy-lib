@@ -12,6 +12,14 @@ public interface IAction {
      */
     boolean execute(Minecraft client);
 
+    /**
+     * Optional post-execution verification to determine if the specific action genuinely succeeded.
+     * By default returns true for actions that don't support failure tracking.
+     */
+    default boolean isVerified(Minecraft client) {
+        return true;
+    }
+
     default ActionPriority getPriority() {
         return ActionPriority.NORMAL;
     }

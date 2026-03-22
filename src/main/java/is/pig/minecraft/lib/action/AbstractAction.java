@@ -79,4 +79,9 @@ public abstract class AbstractAction implements IAction {
     public boolean ignoreGlobalCps() {
         return ignoreGlobalCps;
     }
+
+    @Override
+    public boolean isVerified(Minecraft client) {
+        return verify(client);
+    }
 }
