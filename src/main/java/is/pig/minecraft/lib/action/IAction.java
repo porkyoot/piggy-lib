@@ -24,6 +24,10 @@ public interface IAction {
         return true;
     }
 
+    default boolean ignoreGlobalCps() {
+        return false;
+    }
+
     String getSourceMod();
 
     String getName();

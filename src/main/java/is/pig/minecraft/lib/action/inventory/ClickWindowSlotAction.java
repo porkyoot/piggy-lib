@@ -14,8 +14,8 @@ public class ClickWindowSlotAction extends AbstractAction {
     private final ClickType clickType;
     private final Predicate<ItemStack> expectedItemPredicate;
 
-    public ClickWindowSlotAction(int containerId, int slotId, int button, ClickType clickType, String sourceMod, Predicate<ItemStack> expectedItemPredicate) {
-        super(sourceMod);
+    public ClickWindowSlotAction(int containerId, int slotId, int button, ClickType clickType, String sourceMod, is.pig.minecraft.lib.action.ActionPriority priority, Predicate<ItemStack> expectedItemPredicate) {
+        super(sourceMod, priority);
         this.containerId = containerId;
         this.slotId = slotId;
         this.button = button;
@@ -23,12 +23,20 @@ public class ClickWindowSlotAction extends AbstractAction {
         this.expectedItemPredicate = expectedItemPredicate;
     }
 
+    public ClickWindowSlotAction(int containerId, int slotId, int button, ClickType clickType, String sourceMod, Predicate<ItemStack> expectedItemPredicate) {
+        this(containerId, slotId, button, clickType, sourceMod, is.pig.minecraft.lib.action.ActionPriority.NORMAL, expectedItemPredicate);
+    }
+
     public ClickWindowSlotAction(int containerId, int slotId, int button, ClickType clickType, String sourceMod, ItemStack expectedItem) {
         this(containerId, slotId, button, clickType, sourceMod, (stack) -> ItemStack.isSameItemSameComponents(stack, expectedItem));
     }
 
     public ClickWindowSlotAction(int containerId, int slotId, int button, ClickType clickType, String sourceMod) {
-        this(containerId, slotId, button, clickType, sourceMod, (stack) -> true);
+        this(containerId, slotId, button, clickType, sourceMod, is.pig.minecraft.lib.action.ActionPriority.NORMAL, (stack) -> true);
+    }
+
+    public ClickWindowSlotAction(int containerId, int slotId, int button, ClickType clickType, String sourceMod, is.pig.minecraft.lib.action.ActionPriority priority) {
+        this(containerId, slotId, button, clickType, sourceMod, priority, (stack) -> true);
     }
 
     @Override

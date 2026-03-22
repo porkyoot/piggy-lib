@@ -1,9 +1,11 @@
 package is.pig.minecraft.lib.inventory.search;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 public class InventorySearcher {
@@ -43,5 +45,13 @@ public class InventorySearcher {
             }
         }
         return slots;
+    }
+
+    public static ItemCondition ofClass(Class<? extends Item> itemClass) {
+        return stack -> itemClass.isInstance(stack.getItem());
+    }
+
+    public static ItemCondition ofItems(Item... items) {
+        return stack -> Arrays.asList(items).contains(stack.getItem());
     }
 }

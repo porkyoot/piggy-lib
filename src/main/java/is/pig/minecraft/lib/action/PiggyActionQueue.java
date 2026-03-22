@@ -28,19 +28,28 @@ public class PiggyActionQueue {
         queue.removeIf(pa -> pa.action.getSourceMod().equals(sourceMod));
     }
 
+    public boolean hasActions(String sourceMod) {
+        return queue.stream().anyMatch(pa -> pa.action().getSourceMod().equals(sourceMod));
+    }
+
     private int ticksSinceLastClick = 100;
 
     public void tick(Minecraft client) {
         ticksSinceLastClick++;
-        PrioritizedAction top = queue.peek();
-        if (top != null) {
+        while (true) {
+            PrioritizedAction top = queue.peek();
+            if (top == null) break;
+
             IAction action = top.action();
             
             if (action.isClick() && !action.isInitiated()) {
-                if (action.getPriority() != ActionPriority.HIGHEST) {
-                    int requiredDelayTicks = 20 / Math.max(1, is.pig.minecraft.lib.config.PiggyClientConfig.getInstance().globalActionCps);
-                    if (ticksSinceLastClick < requiredDelayTicks) {
-                        return;
+                if (action.getPriority() != ActionPriority.HIGHEST && !action.ignoreGlobalCps()) {
+                    int cps = is.pig.minecraft.lib.config.PiggyClientConfig.getInstance().globalActionCps;
+                    if (cps > 0) {
+                        int requiredDelayTicks = Math.max(1, 20 / cps);
+                        if (ticksSinceLastClick < requiredDelayTicks) {
+                            break;
+                        }
                     }
                 }
             }
@@ -55,6 +64,8 @@ public class PiggyActionQueue {
             if (done) {
                 queue.poll();
                 LOGGER.info("Completed action '{}'", action.getName());
+            } else {
+                break; // Action is either waiting for verify or CPS delayed
             }
         }
     }

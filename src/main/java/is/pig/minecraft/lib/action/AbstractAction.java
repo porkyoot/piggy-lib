@@ -11,6 +11,7 @@ public abstract class AbstractAction implements IAction {
     private final int timeoutTicks;
     private final String sourceMod;
     private final ActionPriority priority;
+    private boolean ignoreGlobalCps = false;
 
     public AbstractAction(String sourceMod) {
         this(sourceMod, ActionPriority.NORMAL, 10);
@@ -35,6 +36,9 @@ public abstract class AbstractAction implements IAction {
         if (!initiated) {
             onExecute(client);
             initiated = true;
+            if (verify(client)) {
+                return true;
+            }
             return false;
         }
 
@@ -65,5 +69,14 @@ public abstract class AbstractAction implements IAction {
     @Override
     public boolean isInitiated() {
         return initiated;
+    }
+
+    public void setIgnoreGlobalCps(boolean ignoreGlobalCps) {
+        this.ignoreGlobalCps = ignoreGlobalCps;
+    }
+
+    @Override
+    public boolean ignoreGlobalCps() {
+        return ignoreGlobalCps;
     }
 }
