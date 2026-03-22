@@ -30,6 +30,7 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
     public transient java.util.Map<String, Boolean> serverFeatures = new java.util.HashMap<>(); // Runtime feature
 
     private int tickDelay = 1;
+    public int globalActionCps = 20;
 
     public abstract void save();
                                                                                                 // overrides
