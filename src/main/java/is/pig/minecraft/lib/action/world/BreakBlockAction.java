@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
+import java.util.Optional;
 
 public class BreakBlockAction extends AbstractAction {
     private final BlockPos targetPos;
@@ -21,7 +22,7 @@ public class BreakBlockAction extends AbstractAction {
     }
 
     @Override
-    public boolean execute(Minecraft client) {
+    public Optional<Boolean> execute(Minecraft client) {
         if (client.gameMode != null && client.player != null) {
             if (ticksMining == 0) {
                 client.gameMode.startDestroyBlock(this.targetPos, Direction.UP);
@@ -32,17 +33,22 @@ public class BreakBlockAction extends AbstractAction {
         }
         ticksMining++;
         
-        if (verify(client)) return true;
-        if (ticksMining > 200) return true; // 10s max timeout
-        return false;
+        Optional<Boolean> verificationResult = verify(client);
+        if (verificationResult.isPresent()) return verificationResult;
+        
+        if (ticksMining > 200) return Optional.of(false); // 10s max timeout
+        return Optional.empty();
     }
 
     @Override
     protected void onExecute(Minecraft client) {}
 
     @Override
-    protected boolean verify(Minecraft client) {
-        return client.level != null && client.level.getBlockState(this.targetPos).isAir();
+    protected Optional<Boolean> verify(Minecraft client) {
+        if (client.level != null && client.level.getBlockState(this.targetPos).isAir()) {
+            return Optional.of(true);
+        }
+        return Optional.empty();
     }
 
     @Override

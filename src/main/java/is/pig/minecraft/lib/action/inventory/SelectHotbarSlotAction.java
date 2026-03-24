@@ -2,6 +2,7 @@ package is.pig.minecraft.lib.action.inventory;
 
 import is.pig.minecraft.lib.action.AbstractAction;
 import net.minecraft.client.Minecraft;
+import java.util.Optional;
 
 public class SelectHotbarSlotAction extends AbstractAction {
     private final int slot;
@@ -23,8 +24,11 @@ public class SelectHotbarSlotAction extends AbstractAction {
     }
 
     @Override
-    protected boolean verify(Minecraft client) {
-        return client.player != null && client.player.getInventory().selected == this.slot;
+    protected Optional<Boolean> verify(Minecraft client) {
+        if (client.player != null && client.player.getInventory().selected == this.slot) {
+            return Optional.of(true);
+        }
+        return Optional.empty();
     }
 
     @Override

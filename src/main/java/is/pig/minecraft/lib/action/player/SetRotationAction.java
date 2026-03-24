@@ -4,6 +4,7 @@ import is.pig.minecraft.lib.action.AbstractAction;
 import is.pig.minecraft.lib.action.ActionPriority;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
+import java.util.Optional;
 
 public class SetRotationAction extends AbstractAction {
     private final float targetPitch;
@@ -22,14 +23,14 @@ public class SetRotationAction extends AbstractAction {
     }
 
     @Override
-    public boolean execute(Minecraft client) {
+    public Optional<Boolean> execute(Minecraft client) {
         if (this.ticksToInterpolate <= 0) {
             Player player = client.player;
             if (player != null) {
                 player.setXRot(this.targetPitch);
                 player.setYRot(this.targetYaw);
             }
-            return true;
+            return Optional.of(true);
         }
         return super.execute(client);
     }
@@ -40,9 +41,9 @@ public class SetRotationAction extends AbstractAction {
     }
 
     @Override
-    protected boolean verify(Minecraft client) {
+    protected Optional<Boolean> verify(Minecraft client) {
         Player player = client.player;
-        if (player == null) return true;
+        if (player == null) return Optional.of(true);
 
         if (this.ticksToInterpolate > 0) {
             float currentPitch = player.getXRot();
@@ -67,7 +68,10 @@ public class SetRotationAction extends AbstractAction {
         float yawDiff = Math.abs(((currentYaw - this.targetYaw) % 360.0f + 540.0f) % 360.0f - 180.0f);
         boolean yawMatches = yawDiff <= 0.1f;
 
-        return (pitchMatches && yawMatches) || this.ticksToInterpolate <= 0;
+        if ((pitchMatches && yawMatches) || this.ticksToInterpolate <= 0) {
+            return Optional.of(true);
+        }
+        return Optional.empty();
     }
 
     @Override

@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 public class ClickWindowSlotAction extends AbstractAction {
@@ -48,14 +49,16 @@ public class ClickWindowSlotAction extends AbstractAction {
     }
 
     @Override
-    protected boolean verify(Minecraft client) {
+    protected Optional<Boolean> verify(Minecraft client) {
         if (client.player != null && client.player.containerMenu != null && client.player.containerMenu.containerId == this.containerId) {
             if (this.slotId >= 0 && this.slotId < client.player.containerMenu.slots.size()) {
                 ItemStack stack = client.player.containerMenu.getSlot(this.slotId).getItem();
-                return expectedItemPredicate.test(stack);
+                if (expectedItemPredicate.test(stack)) {
+                    return Optional.of(true);
+                }
             }
         }
-        return false;
+        return Optional.empty();
     }
 
     @Override

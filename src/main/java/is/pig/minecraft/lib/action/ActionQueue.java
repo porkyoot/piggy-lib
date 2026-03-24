@@ -4,6 +4,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.client.Minecraft;
+import java.util.Optional;
 
 public class ActionQueue {
     private final Queue<IAction> queue = new ConcurrentLinkedQueue<>();
@@ -21,7 +22,8 @@ public class ActionQueue {
     public void tick(Minecraft client) {
         IAction currentAction = queue.peek();
         if (currentAction != null) {
-            if (currentAction.execute(client)) {
+            Optional<Boolean> result = currentAction.execute(client);
+            if (result.isPresent()) {
                 queue.poll();
             }
         }

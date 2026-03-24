@@ -3,6 +3,7 @@ package is.pig.minecraft.lib.action.world;
 import is.pig.minecraft.lib.action.AbstractAction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
+import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
 public class UseItemAction extends AbstractAction {
@@ -28,8 +29,8 @@ public class UseItemAction extends AbstractAction {
     }
 
     @Override
-    protected boolean verify(Minecraft client) {
-        return verifyCondition.getAsBoolean();
+    protected Optional<Boolean> verify(Minecraft client) {
+        return verifyCondition.getAsBoolean() ? Optional.of(true) : Optional.empty();
     }
 
     @Override

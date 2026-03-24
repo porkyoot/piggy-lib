@@ -1,42 +1,21 @@
 package is.pig.minecraft.lib.action;
 
 import net.minecraft.client.Minecraft;
+import java.util.Optional;
 
 public interface IAction {
     /**
-     * Executes the action.
-     * 
-     * @param client The Minecraft client instance.
-     * @return true if the action is considered 'completed' and should be
-     *         removed from the queue, false otherwise.
+     * @return Optional.of(true) if succeeded, Optional.of(false) if failed/timed out, 
+     * Optional.empty() if still executing/waiting for verification.
      */
-    boolean execute(Minecraft client);
+    Optional<Boolean> execute(Minecraft client);
 
-    /**
-     * Optional post-execution verification to determine if the specific action genuinely succeeded.
-     * By default returns true for actions that don't support failure tracking.
-     */
-    default boolean isVerified(Minecraft client) {
-        return true;
-    }
-
-    default ActionPriority getPriority() {
-        return ActionPriority.NORMAL;
-    }
-
-    default boolean isClick() {
-        return false;
-    }
-
-    default boolean isInitiated() {
-        return true;
-    }
-
-    default boolean ignoreGlobalCps() {
-        return false;
-    }
-
+    default ActionPriority getPriority() { return ActionPriority.NORMAL; }
+    default boolean isClick() { return false; }
+    default boolean isInitiated() { return true; }
+    default boolean ignoreGlobalCps() { return false; }
+    default boolean isVerified(Minecraft client) { return execute(client).orElse(false); }
+    
     String getSourceMod();
-
     String getName();
 }

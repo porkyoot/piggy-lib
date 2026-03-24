@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class AttackEntityAction extends AbstractAction {
@@ -21,13 +22,7 @@ public class AttackEntityAction extends AbstractAction {
         this.entityLocator = () -> target;
     }
 
-    @Override
-    public boolean execute(Minecraft client) {
-        onExecute(client);
-        boolean isDone = verify(client);
-        if (isDone) return true;
-        return super.execute(client);
-    }
+
 
     @Override
     protected void onExecute(Minecraft client) {
@@ -39,9 +34,9 @@ public class AttackEntityAction extends AbstractAction {
     }
 
     @Override
-    protected boolean verify(Minecraft client) {
+    protected Optional<Boolean> verify(Minecraft client) {
         Entity target = entityLocator.get();
-        return target == null || !target.isAlive();
+        return (target == null || !target.isAlive()) ? Optional.of(true) : Optional.empty();
     }
 
     @Override

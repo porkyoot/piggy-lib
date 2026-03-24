@@ -1,8 +1,10 @@
 package is.pig.minecraft.lib.action;
 
+import is.pig.minecraft.lib.config.PiggyClientConfig;
 import is.pig.minecraft.lib.util.PiggyLog;
 import net.minecraft.client.Minecraft;
 
+import java.util.Optional;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -12,62 +14,67 @@ public class PiggyActionQueue {
 
     private final PriorityBlockingQueue<PrioritizedAction> queue = new PriorityBlockingQueue<>();
     private final AtomicLong sequenceNumber = new AtomicLong(0);
+    private int ticksSinceLastClick = 100;
 
     private PiggyActionQueue() {}
 
-    public static PiggyActionQueue getInstance() {
-        return INSTANCE;
-    }
+    public static PiggyActionQueue getInstance() { return INSTANCE; }
 
     public void enqueue(IAction action) {
         queue.put(new PrioritizedAction(action, sequenceNumber.getAndIncrement()));
-        LOGGER.info("Enqueued [{}] action '{}' from '{}'", action.getPriority().name(), action.getName(), action.getSourceMod());
     }
 
     public void clear(String sourceMod) {
-        queue.removeIf(pa -> pa.action.getSourceMod().equals(sourceMod));
+        queue.removeIf(pa -> pa.action().getSourceMod().equals(sourceMod));
     }
 
     public boolean hasActions(String sourceMod) {
         return queue.stream().anyMatch(pa -> pa.action().getSourceMod().equals(sourceMod));
     }
 
-    private int ticksSinceLastClick = 100;
-
     public void tick(Minecraft client) {
         ticksSinceLastClick++;
-        while (true) {
+        
+        while (!queue.isEmpty()) {
             PrioritizedAction top = queue.peek();
-            if (top == null) break;
-
             IAction action = top.action();
-            
-            if (action.isClick() && !action.isInitiated()) {
-                if (action.getPriority() != ActionPriority.HIGHEST && !action.ignoreGlobalCps()) {
-                    int cps = is.pig.minecraft.lib.config.PiggyClientConfig.getInstance().globalActionCps;
-                    if (cps > 0) {
-                        int requiredDelayTicks = Math.max(1, 20 / cps);
-                        if (ticksSinceLastClick < requiredDelayTicks) {
-                            break;
-                        }
-                    }
-                }
+
+            // 1. CPS Rate Limiter Gate
+            if (isCpsRateLimited(action)) {
+                break; // Stop processing this tick, wait for next
             }
 
-            boolean wasInitiated = action.isInitiated();
-            boolean done = action.execute(client);
+            // 2. Execution
+            boolean justInitiated = !action.isInitiated();
+            Optional<Boolean> result = action.execute(client);
             
-            if (action.isClick() && !wasInitiated && action.isInitiated()) {
+            if (justInitiated && action.isClick() && action.isInitiated()) {
                 ticksSinceLastClick = 0;
             }
 
-            if (done) {
-                queue.poll();
-                LOGGER.info("Completed action '{}'", action.getName());
+            // 3. Result Evaluation
+            if (result.isPresent()) {
+                queue.poll(); // Remove finished/failed action
+                if (result.get()) {
+                    LOGGER.debug("Completed action '{}'", action.getName());
+                }
             } else {
-                break; // Action is either waiting for verify or CPS delayed
+                break; // Action is waiting for verification. Block queue.
             }
         }
+    }
+
+    private boolean isCpsRateLimited(IAction action) {
+        if (!action.isClick() || action.isInitiated() || 
+            action.getPriority() == ActionPriority.HIGHEST || action.ignoreGlobalCps()) {
+            return false; // Fast-pass
+        }
+        
+        int cps = PiggyClientConfig.getInstance().globalActionCps;
+        if (cps <= 0) return false; // 0 = Unlimited
+        
+        int requiredDelayTicks = Math.max(1, 20 / cps);
+        return ticksSinceLastClick < requiredDelayTicks;
     }
 
     private record PrioritizedAction(IAction action, long sequence) implements Comparable<PrioritizedAction> {

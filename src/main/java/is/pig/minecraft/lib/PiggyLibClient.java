@@ -13,7 +13,7 @@ public class PiggyLibClient implements ClientModInitializer {
         is.pig.minecraft.lib.ui.IconQueueOverlay.register();
 
         // Register Action Queue processing
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
             PiggyActionQueue.getInstance().tick(client);
         });
     }

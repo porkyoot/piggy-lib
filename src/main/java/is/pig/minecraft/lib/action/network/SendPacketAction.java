@@ -4,6 +4,7 @@ import is.pig.minecraft.lib.action.ActionPriority;
 import is.pig.minecraft.lib.action.IAction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.Packet;
+import java.util.Optional;
 
 public class SendPacketAction implements IAction {
     private final Packet<?> packet;
@@ -17,11 +18,11 @@ public class SendPacketAction implements IAction {
     }
 
     @Override
-    public boolean execute(Minecraft client) {
+    public Optional<Boolean> execute(Minecraft client) {
         if (client.getConnection() != null) {
             client.getConnection().send(packet);
         }
-        return true;
+        return Optional.of(true);
     }
 
     @Override

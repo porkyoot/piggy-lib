@@ -4,6 +4,7 @@ import is.pig.minecraft.lib.util.PiggyLog;
 import net.minecraft.client.Minecraft;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
 public class BulkAction implements IAction {
@@ -63,7 +64,7 @@ public class BulkAction implements IAction {
     }
 
     @Override
-    public boolean execute(Minecraft client) {
+    public Optional<Boolean> execute(Minecraft client) {
         initiated = true;
 
         if (!allExecuted) {
@@ -77,7 +78,7 @@ public class BulkAction implements IAction {
                     int requiredDelayTicks = Math.max(1, 20 / cps);
                     if (ticksSinceLastSubAction < requiredDelayTicks) {
                         ticksSinceLastSubAction++;
-                        return false; 
+                        return Optional.empty(); 
                     }
                 }
 
@@ -87,23 +88,23 @@ public class BulkAction implements IAction {
                 currentIndex++;
 
                 if (shouldThrottle && cps > 0) {
-                    return false; // Yield tick to enforce CPS delay
+                    return Optional.empty(); // Yield tick to enforce CPS delay
                 }
             }
             
             allExecuted = true;
             if (verifyCondition.getAsBoolean()) {
                 finalizeAction(client, false);
-                return true;
+                return Optional.of(true);
             }
-            return false;
+            return Optional.empty();
         }
 
         // Verification Phase
         waitTicks++;
         if (verifyCondition.getAsBoolean()) {
             finalizeAction(client, false);
-            return true;
+            return Optional.of(true);
         }
 
         if (waitTicks >= timeoutTicks) {
@@ -114,10 +115,10 @@ public class BulkAction implements IAction {
             if (callback == null) {
                 LOGGER.warn("BulkAction '{}' from '{}' timed out waiting for composite verification", getName(), getSourceMod());
             }
-            return true;
+            return Optional.of(false);
         }
 
-        return false;
+        return Optional.empty();
     }
 
     public void setIgnoreGlobalCps(boolean ignoreGlobalCps) {
