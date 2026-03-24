@@ -15,6 +15,15 @@ public class PiggyActionQueue {
     private final PriorityBlockingQueue<PrioritizedAction> queue = new PriorityBlockingQueue<>();
     private final AtomicLong sequenceNumber = new AtomicLong(0);
     private int ticksSinceLastClick = 100;
+    private boolean suppressAutoRefill = false;
+
+    public void setSuppressAutoRefill(boolean suppressAutoRefill) {
+        this.suppressAutoRefill = suppressAutoRefill;
+    }
+
+    public boolean isSuppressAutoRefill() {
+        return suppressAutoRefill;
+    }
 
     private PiggyActionQueue() {}
 
