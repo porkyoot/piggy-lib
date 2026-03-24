@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.Vec3;
 import java.util.Optional;
 
 public class BreakBlockAction extends AbstractAction {
@@ -24,6 +25,13 @@ public class BreakBlockAction extends AbstractAction {
     @Override
     public Optional<Boolean> execute(Minecraft client) {
         if (client.gameMode != null && client.player != null) {
+            Vec3 targetVec = Vec3.atCenterOf(this.targetPos);
+            Vec3 diff = targetVec.subtract(client.player.getEyePosition());
+            double distance = diff.horizontalDistance();
+            
+            client.player.setYRot((float) (Math.atan2(diff.z, diff.x) * (180.0 / Math.PI)) - 90.0f);
+            client.player.setXRot((float) -(Math.atan2(diff.y, distance) * (180.0 / Math.PI)));
+
             if (ticksMining == 0) {
                 client.gameMode.startDestroyBlock(this.targetPos, Direction.UP);
             } else {
