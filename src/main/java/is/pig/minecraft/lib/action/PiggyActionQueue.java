@@ -42,6 +42,8 @@ public class PiggyActionQueue {
     }
 
     public void tick(Minecraft client) {
+        is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().tick(client);
+        is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager.getInstance().tick(client);
         ticksSinceLastClick++;
         
         while (!queue.isEmpty()) {
@@ -59,6 +61,7 @@ public class PiggyActionQueue {
             
             if (justInitiated && action.isClick() && action.isInitiated()) {
                 ticksSinceLastClick = 0;
+                is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().recordAction();
             }
 
             // 3. Result Evaluation

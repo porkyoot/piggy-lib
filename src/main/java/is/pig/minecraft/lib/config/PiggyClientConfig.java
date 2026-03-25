@@ -14,7 +14,7 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
         return instance;
     }
 
-    protected static void setInstance(PiggyClientConfig<?> inst) {
+    protected static void setGlobalInstance(PiggyClientConfig<?> inst) {
         instance = inst;
     }
 
@@ -31,6 +31,10 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
 
     private int tickDelay = 1;
     public int globalActionCps = 20;
+
+    // Logging configurations
+    private boolean productionMode = true;
+    private int maxLogBufferSize = 100;
 
     public abstract void save();
                                                                                                 // overrides
@@ -80,6 +84,24 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
     
     public void setTickDelayInternal(int tickDelay) {
         this.tickDelay = tickDelay;
+    }
+
+    public boolean isProductionMode() {
+        return productionMode;
+    }
+
+    public void setProductionMode(boolean productionMode) {
+        this.productionMode = productionMode;
+        PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+
+    public int getMaxLogBufferSize() {
+        return maxLogBufferSize;
+    }
+
+    public void setMaxLogBufferSize(int maxLogBufferSize) {
+        this.maxLogBufferSize = maxLogBufferSize;
+        PiggyConfigRegistry.getInstance().syncSharedSettings(this);
     }
 
     /**
