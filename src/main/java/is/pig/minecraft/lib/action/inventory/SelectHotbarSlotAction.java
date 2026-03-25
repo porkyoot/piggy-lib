@@ -7,9 +7,17 @@ import java.util.Optional;
 public class SelectHotbarSlotAction extends AbstractAction {
     private final int slot;
 
-    public SelectHotbarSlotAction(int slot, String sourceMod) {
-        super(sourceMod);
+    public SelectHotbarSlotAction(int slot, String sourceMod, is.pig.minecraft.lib.action.ActionPriority priority, int timeoutTicks) {
+        super(sourceMod, priority, timeoutTicks);
         this.slot = slot;
+    }
+
+    public SelectHotbarSlotAction(int slot, String sourceMod, is.pig.minecraft.lib.action.ActionPriority priority) {
+        this(slot, sourceMod, priority, 40);
+    }
+
+    public SelectHotbarSlotAction(int slot, String sourceMod) {
+        this(slot, sourceMod, is.pig.minecraft.lib.action.ActionPriority.NORMAL, 40);
     }
 
     @Override

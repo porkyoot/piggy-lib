@@ -20,6 +20,11 @@ import net.minecraft.network.chat.Style;
 public class FileOutputEngine {
     private static final PiggyLog LOGGER = new PiggyLog("piggy-lib", "TelemetryOutput");
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+    private static java.io.File latestDump = null;
+
+    public static java.util.Optional<java.io.File> getLatestDump() {
+        return java.util.Optional.ofNullable(latestDump);
+    }
 
     public static void dump(MetaActionSession session) {
         // Construct the log directory in run/logs/piggy/
@@ -29,7 +34,7 @@ public class FileOutputEngine {
             return;
         }
         File gameDir = mc.gameDirectory;
-        File logsDir = new File(gameDir, "piggy_lib_dumps");
+        File logsDir = new File(gameDir, "logs/piggy");
         
         if (!logsDir.exists() && !logsDir.mkdirs()) {
             LOGGER.error("Failed to create telemetry logs directory: {}", logsDir.getAbsolutePath());
@@ -57,6 +62,7 @@ public class FileOutputEngine {
             writer.write("--- LOG END ---\n");
             writer.println("=== End of Dump ===");
             LOGGER.info("Telemetry dumped to: {}", logFile.getName());
+            latestDump = logFile;
             sendChatNotification(session, logFile);
         } catch (IOException e) {
             LOGGER.error("Failed to write telemetry dump for session " + session.getName(), e);
@@ -71,20 +77,23 @@ public class FileOutputEngine {
         String outcome = session.getFailureReason() != null ? session.getFailureReason() : "unknown error";
         String logPath = logFile.getAbsolutePath();
 
-        String informativeMessage = String.format("Piggy Lib: %s failed. Reason: %s. A detailed forensic report was generated for analysis. ",
-            sessionName, outcome);
+        String informativeMessage = String.format("[PiggyMods] %s failed. Reason: %s. A detailed forensic report was generated for analysis at: %s",
+            sessionName, outcome, logPath);
 
-        LOGGER.info(informativeMessage + "View the log at: {}", logPath);
+        LOGGER.info(informativeMessage);
 
-        Component msg = Component.literal("Piggy Lib: ")
+        Component msg = Component.literal("[PiggyMods] ")
             .withStyle(Style.EMPTY.withColor(ChatFormatting.GOLD).withBold(true))
-            .append(Component.literal(sessionName + " failed. Reason: " + outcome + ". ")
+            .append(Component.literal(sessionName + " failed: " + outcome + ". ")
                 .withStyle(ChatFormatting.RED))
-            .append(Component.literal(logPath)
+            .append(Component.literal("[Open Log]")
                 .withStyle(Style.EMPTY
                     .withColor(ChatFormatting.AQUA)
                     .withUnderlined(true)
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, logPath))));
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, logPath))
+                    .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
+                        net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT, 
+                        Component.literal(logPath)))));
 
         client.player.sendSystemMessage(msg);
     }

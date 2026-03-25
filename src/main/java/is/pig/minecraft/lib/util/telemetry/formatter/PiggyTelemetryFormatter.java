@@ -95,6 +95,23 @@ public class PiggyTelemetryFormatter {
         return sb.toString();
     }
 
+    public static String formatItemStacks(List<ItemStack> stacks) {
+        if (stacks == null || stacks.isEmpty()) return "[ItemStacks|empty]";
+        
+        StringBuilder sb = new StringBuilder("[ItemStacks|");
+        boolean first = true;
+        for (int i = 0; i < stacks.size(); i++) {
+            ItemStack stack = stacks.get(i);
+            if (!stack.isEmpty()) {
+                if (!first) sb.append(", ");
+                sb.append(String.format("%d:%s", i, formatItem(stack)));
+                first = false;
+            }
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     public static String formatNearbyEntities(BlockPos center, double radius, Level level) {
         if (level == null || center == null) return "[NearbyEntities|error]";
         
@@ -151,10 +168,52 @@ public class PiggyTelemetryFormatter {
         return sb.toString();
     }
 
+    public static String formatFullPlayerInventory(Player player) {
+        if (player == null) return "[PlayerInv|null]";
+        
+        StringBuilder sb = new StringBuilder("[PlayerInv|");
+        
+        // Hotbar (0-8)
+        sb.append("Hotbar:[");
+        for (int i = 0; i < 9; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(i).append(":").append(formatItem(player.getInventory().getItem(i)));
+        }
+        sb.append("]|");
+        
+        // Main Inventory (9-35)
+        sb.append("Main:[");
+        for (int i = 9; i < 36; i++) {
+            if (i > 9) sb.append(", ");
+            sb.append(i).append(":").append(formatItem(player.getInventory().getItem(i)));
+        }
+        sb.append("]|");
+        
+        // Offhand
+        sb.append("Offhand:").append(formatItem(player.getOffhandItem())).append("|");
+        
+        // Armor
+        sb.append("Armor:[");
+        for (int i = 0; i < 4; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(i).append(":").append(formatItem(player.getInventory().armor.get(i)));
+        }
+        sb.append("]|");
+        
+        // Cursor
+        sb.append("Cursor:").append(formatItem(player.containerMenu.getCarried()));
+        
+        sb.append("]");
+        return sb.toString();
+    }
+
+    public static String formatValidationFailure(int slotIndex, ItemStack expected, ItemStack actual) {
+        return String.format("[ValidationFailure|Slot %d|Expected:%s|Actual:%s]", 
+            slotIndex, formatItem(expected), formatItem(actual));
+    }
+
     private static BlockPos findFirstSolidBelow(BlockPos start, Level level) {
         BlockPos.MutableBlockPos mutable = start.mutable();
-        // If the start itself is already solid, we should look AT or below it?
-        // Usually target is the first impact, so we look below.
         mutable.move(net.minecraft.core.Direction.DOWN);
         while (mutable.getY() >= level.getMinBuildHeight()) {
             if (level.getBlockState(mutable).blocksMotion()) {

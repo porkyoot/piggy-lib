@@ -120,7 +120,7 @@ public class MetaActionSession {
         }
     }
 
-    private void discard() {
+    public synchronized void discard() {
         buffer.clear();
         MetaActionSessionManager.getInstance().endSession(this);
     }
