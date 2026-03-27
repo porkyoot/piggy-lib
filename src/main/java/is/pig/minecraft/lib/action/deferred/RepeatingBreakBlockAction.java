@@ -17,7 +17,7 @@ public class RepeatingBreakBlockAction implements IDeferredAction {
         this.targetPos = targetPos;
         this.maxTicks = maxTicks;
         this.preBreakTask = preBreakTask;
-        LOGGER.info("Registered new Contextual BreakBlock payload! Pos: " + targetPos + " | Timeout: " + maxTicks);
+        LOGGER.debug("Registered deferred BreakBlock. Pos: {} | Timeout: {}", targetPos, maxTicks);
     }
 
     public RepeatingBreakBlockAction(BlockPos targetPos, int maxTicks) {
@@ -30,14 +30,14 @@ public class RepeatingBreakBlockAction implements IDeferredAction {
         
         ageTicks++;
         if (ageTicks > maxTicks) {
-            LOGGER.info("Contextual Tracker TIMEOUT expired for Block: " + targetPos);
+            LOGGER.debug("Deferred BreakBlock TIMEOUT for: {}", targetPos);
             return true; 
         }
 
         // Success check!
         if (client.level.isEmptyBlock(targetPos)) {
-            LOGGER.info("Target organically broken! De-registering payload: " + targetPos);
-            return true; // Successfully broken natively!
+            LOGGER.debug("Target broken successfully. De-registering payload: {}", targetPos);
+            return true;
         }
 
         // Context Trigger Validation
@@ -52,9 +52,8 @@ public class RepeatingBreakBlockAction implements IDeferredAction {
         double distSq = client.player.getEyePosition().distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(targetPos));
         if (distSq >= 16.0) return false;
 
-        // Ensure the main queue isn't already busy handling our exact request organically
         if (!PiggyActionQueue.getInstance().hasActions("piggy-build")) {
-            LOGGER.info("Tracker Condition Met! DistanceSq: " + distSq + " | Injecting Block Break Action natively.");
+            LOGGER.debug("Deferred BreakBlock condition met. Injecting action.");
             if (preBreakTask != null) {
                 preBreakTask.run();
             }

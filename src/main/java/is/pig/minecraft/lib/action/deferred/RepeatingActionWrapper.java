@@ -24,7 +24,7 @@ public class RepeatingActionWrapper implements IDeferredAction {
         this.actionFactory = actionFactory;
         this.finishCondition = finishCondition;
         this.contextValidator = contextValidator;
-        LOGGER.info("Registered new Generic Contextual payload! Pos: " + targetPos + " | Timeout: " + maxTicks);
+        LOGGER.debug("Registered deferred generic action. Pos: {} | Timeout: {}", targetPos, maxTicks);
     }
 
     @Override
@@ -33,12 +33,12 @@ public class RepeatingActionWrapper implements IDeferredAction {
         
         ageTicks++;
         if (ageTicks > maxTicks) {
-            LOGGER.info("Contextual Tracker TIMEOUT expired for Block: " + targetPos);
+            LOGGER.debug("Deferred generic action TIMEOUT for: {}", targetPos);
             return true; 
         }
 
         if (ageTicks > 15 && finishCondition.get()) {
-            LOGGER.info("Target logically fulfilled! De-registering payload: " + targetPos);
+            LOGGER.debug("Deferred action fulfilled. De-registering: {}", targetPos);
             return true;
         }
 
@@ -50,7 +50,7 @@ public class RepeatingActionWrapper implements IDeferredAction {
         if (distSq >= 16.0) return false;
 
         if (!PiggyActionQueue.getInstance().hasActions("piggy-build")) {
-            LOGGER.info("Tracker Condition Met! DistanceSq: " + distSq + " | Injecting Payload natively.");
+            LOGGER.debug("Deferred generic action condition met. Injecting payload.");
             if (preTask != null) {
                 preTask.run();
             }

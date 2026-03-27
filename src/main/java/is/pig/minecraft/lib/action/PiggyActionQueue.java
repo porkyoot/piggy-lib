@@ -8,6 +8,13 @@ import java.util.Optional;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Centralized, prioritized, and rate-limited action queue for all Piggy Mods.
+ * This queue ensures that physical interactions, inventory clicks, and movements
+ * are execution-safe, verifiable, and comply with configurable CPS (Clicks Per Second) limits.
+ * 
+ * Actions are processed in order of {@link ActionPriority}, then by sequence number.
+ */
 public class PiggyActionQueue {
     private static final PiggyActionQueue INSTANCE = new PiggyActionQueue();
     private static final PiggyLog LOGGER = new PiggyLog("piggy-lib", "ActionQueue");
@@ -29,6 +36,10 @@ public class PiggyActionQueue {
 
     public static PiggyActionQueue getInstance() { return INSTANCE; }
 
+    /**
+     * Enqueues an action for execution in the centralized queue.
+     * @param action The stateful action to execute.
+     */
     public void enqueue(IAction action) {
         queue.put(new PrioritizedAction(action, sequenceNumber.getAndIncrement()));
     }
@@ -41,6 +52,10 @@ public class PiggyActionQueue {
         return queue.stream().anyMatch(pa -> pa.action().getSourceMod().equals(sourceMod));
     }
 
+    /**
+     * Ticks the action queue, processing any pending actions that are not rate-limited.
+     * This method should be called every client tick.
+     */
     public void tick(Minecraft client) {
         is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().tick(client);
         is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager.getInstance().tick(client);
