@@ -15,6 +15,9 @@ public class PerfMonitor {
     private int actionsThisSecond = 0;
     private double currentCps = 0;
 
+    private double serverTps = 20.0;
+    private long lastWorldTickTime = System.currentTimeMillis();
+
     private PerfMonitor() {}
 
     public static PerfMonitor getInstance() {
@@ -40,6 +43,19 @@ public class PerfMonitor {
         }
     }
 
+    /**
+     * Estimates server TPS using delta between world ticks.
+     */
+    public void onWorldTickEnd() {
+        long now = System.currentTimeMillis();
+        long delta = Math.max(1, now - lastWorldTickTime);
+        lastWorldTickTime = now;
+
+        // Apply smoothing factor to the TPS estimate
+        double instantTps = Math.min(20.0, 1000.0 / Math.max(50, delta));
+        serverTps = (serverTps * 0.9) + (instantTps * 0.1);
+    }
+
     public void recordAction() {
         actionsThisSecond++;
     }
@@ -52,21 +68,24 @@ public class PerfMonitor {
         return currentCps;
     }
 
+    public double getServerTps() {
+        return serverTps;
+    }
+
     public int getPing() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.getConnection() != null && mc.player != null) {
-            net.minecraft.client.multiplayer.PlayerInfo entry = mc.getConnection().getPlayerInfo(mc.player.getUUID());
-            if (entry != null) {
-                return entry.getLatency();
-            }
+            var entry = mc.getConnection().getPlayerInfo(mc.player.getUUID());
+            return entry != null ? entry.getLatency() : 0;
         }
-        return -1;
+        return 0;
     }
 
     public String getFormattedGlobalState() {
         StringBuilder sb = new StringBuilder();
         sb.append("--- GLOBAL STATE ---\n");
         sb.append(String.format("Client MSPT: %.2f ms (FPS: %.1f)\n", clientMspt, 1000.0 / Math.max(1, clientMspt)));
+        sb.append(String.format("Server TPS: %.1f\n", serverTps));
         sb.append(String.format("Current CPS: %.1f\n", currentCps));
         sb.append(String.format("Player Ping: %d ms\n", getPing()));
         

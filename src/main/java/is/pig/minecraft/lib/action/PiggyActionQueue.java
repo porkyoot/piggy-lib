@@ -100,7 +100,20 @@ public class PiggyActionQueue {
         int cps = PiggyClientConfig.getInstance().globalActionCps;
         if (cps <= 0) return false; // 0 = Unlimited
         
+        double serverTps = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().getServerTps();
         int requiredDelayTicks = Math.max(1, 20 / cps);
+
+        // Dynamic lag compensation: throttle actions if server TPS drops below 15
+        if (serverTps < 15.0) {
+            double lagFactor = 20.0 / Math.max(1.0, serverTps);
+            requiredDelayTicks = (int) Math.ceil(requiredDelayTicks * lagFactor);
+        }
+
+        // Extreme lag failsafe: never exceed 5 actions per second if server is dying
+        if (serverTps < 5.0) {
+            requiredDelayTicks = Math.max(requiredDelayTicks, 4);
+        }
+        
         return ticksSinceLastClick < requiredDelayTicks;
     }
 

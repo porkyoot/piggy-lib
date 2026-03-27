@@ -16,5 +16,10 @@ public class PiggyLibClient implements ClientModInitializer {
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             PiggyActionQueue.getInstance().tick(client);
         });
+
+        // Register TPS tracking
+        ClientTickEvents.END_WORLD_TICK.register(world -> {
+            is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().onWorldTickEnd();
+        });
     }
 }
