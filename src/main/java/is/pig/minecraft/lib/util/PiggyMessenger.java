@@ -20,7 +20,6 @@ public class PiggyMessenger {
     private static final Style ERROR_STYLE = Style.EMPTY.withColor(ChatFormatting.RED);
     private static final Style SUCCESS_STYLE = Style.EMPTY.withColor(ChatFormatting.GREEN);
     private static final Style INFO_STYLE = Style.EMPTY.withColor(ChatFormatting.GRAY);
-    private static final Style ADMIN_PREFIX_STYLE = Style.EMPTY.withColor(ChatFormatting.DARK_RED).withBold(true);
     private static final Style WHISPER_STYLE = Style.EMPTY.withColor(ChatFormatting.GRAY).withItalic(true);
 
     public static MutableComponent getPrefix() {
@@ -28,7 +27,7 @@ public class PiggyMessenger {
     }
 
     public static MutableComponent getAdminPrefix() {
-        return Component.literal("[PiggyAdmin] ").withStyle(ADMIN_PREFIX_STYLE);
+        return getPrefix();
     }
 
     public static void sendSuccess(Player player, String translationKey, Object... args) {

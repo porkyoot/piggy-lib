@@ -3,8 +3,6 @@
 
 # Piggy Lib
 
-# Piggy Lib
-
 A shared library providing the core infrastructure and high-performance utilities for all Piggy mods. It centralizes common systems to ensure consistency, stability, and anti-cheat compliance.
 
 ---
