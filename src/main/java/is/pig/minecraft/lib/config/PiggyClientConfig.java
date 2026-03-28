@@ -34,7 +34,7 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
 
     // Logging configurations
     private boolean productionMode = true;
-    private int maxLogBufferSize = 1000;
+    private int maxLogBufferSize = 100;
 
     public abstract void save();
                                                                                                 // overrides
