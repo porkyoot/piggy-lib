@@ -57,8 +57,10 @@ public class PiggyActionQueue {
      * This method should be called every client tick.
      */
     public void tick(Minecraft client) {
-        is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().tick(client);
-        is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager.getInstance().tick(client);
+        if (client != null) {
+            is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().tick();
+            is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager.getInstance().tick(client.player);
+        }
         ticksSinceLastClick++;
         
         while (!queue.isEmpty()) {

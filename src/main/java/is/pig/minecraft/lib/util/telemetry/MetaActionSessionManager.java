@@ -4,7 +4,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 
 /**
  * Manages active MetaActionSessions.
@@ -54,17 +54,17 @@ public class MetaActionSessionManager {
         }
     }
 
-    public void tick(Minecraft client) {
-        if (client.player == null) return;
+    public void tick(LocalPlayer player) {
+        if (player == null) return;
 
-        boolean died = client.player.isDeadOrDying() || client.player.getHealth() <= 0;
+        boolean died = player.isDeadOrDying() || player.getHealth() <= 0;
         
         for (MetaActionSession session : monitoringSessions) {
             if (died) {
                 String forensics = String.format("Died@%s | Health:%.1f | LastPos:%s", 
-                    is.pig.minecraft.lib.util.telemetry.formatter.FormatterUtils.formatVec3(client.player.position()),
-                    client.player.getHealth(),
-                    is.pig.minecraft.lib.util.telemetry.formatter.FormatterUtils.formatVec3(client.player.position()));
+                    is.pig.minecraft.lib.util.telemetry.formatter.FormatterUtils.formatVec3(player.position()),
+                    player.getHealth(),
+                    is.pig.minecraft.lib.util.telemetry.formatter.FormatterUtils.formatVec3(player.position()));
                 session.fail("Delayed Death Forensics: " + forensics);
             } else {
                 session.tickMonitor();

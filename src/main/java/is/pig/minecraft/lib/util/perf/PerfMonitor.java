@@ -1,6 +1,5 @@
 package is.pig.minecraft.lib.util.perf;
 
-import net.minecraft.client.Minecraft;
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 
 /**
@@ -27,7 +26,7 @@ public class PerfMonitor {
     /**
      * Should be called every client tick.
      */
-    public void tick(Minecraft client) {
+    public void tick() {
         long now = System.nanoTime();
         // Simple smoothing
         double instantMspt = (now - lastTickTime) / 1_000_000.0;
@@ -72,13 +71,13 @@ public class PerfMonitor {
         return serverTps;
     }
 
-    public int getPing() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.getConnection() != null && mc.player != null) {
-            var entry = mc.getConnection().getPlayerInfo(mc.player.getUUID());
-            return entry != null ? entry.getLatency() : 0;
-        }
-        return 0;
+    /**
+     * Returns the player's current network latency in milliseconds.
+     * Must be called from client-side code only.
+     * @param pingSupplier a supplier that returns the ping value from the client connection
+     */
+    public int getPing(java.util.function.IntSupplier pingSupplier) {
+        return pingSupplier != null ? pingSupplier.getAsInt() : 0;
     }
 
     public String getFormattedGlobalState() {
@@ -87,7 +86,7 @@ public class PerfMonitor {
         sb.append(String.format("Client MSPT: %.2f ms (FPS: %.1f)\n", clientMspt, 1000.0 / Math.max(1, clientMspt)));
         sb.append(String.format("Server TPS: %.1f\n", serverTps));
         sb.append(String.format("Current CPS: %.1f\n", currentCps));
-        sb.append(String.format("Player Ping: %d ms\n", getPing()));
+        sb.append(String.format("Player Ping: %d ms\n", getPing(null)));
         
         // Configs
         sb.append("Enabled Features: ");
