@@ -77,14 +77,15 @@ public class FileOutputEngine {
         String outcome = session.getFailureReason() != null ? session.getFailureReason() : "unknown error";
         String logPath = logFile.getAbsolutePath();
 
-        String informativeMessage = String.format("[PiggyMods] %s failed. Reason: %s. A detailed forensic report was generated for analysis at: %s",
-            sessionName, outcome, logPath);
+        // Console log still includes the outcome for admin debugging
+        LOGGER.info("[PiggyMods] {} failed. Reason: {}. Forensic log: {}", sessionName, outcome, logPath);
 
-        LOGGER.info(informativeMessage);
+        boolean isMlgNoMethod = sessionName.contains("MLG") && outcome.contains("No viable survival method found");
+        String chatBase = isMlgNoMethod ? "MLG couldn't be done" : sessionName + " failed";
 
         Component msg = Component.literal("[PiggyMods] ")
             .withStyle(Style.EMPTY.withColor(ChatFormatting.GOLD).withBold(true))
-            .append(Component.literal(sessionName + " failed: " + outcome + ". ")
+            .append(Component.literal(chatBase + ". ")
                 .withStyle(ChatFormatting.RED))
             .append(Component.literal("[Open Log]")
                 .withStyle(Style.EMPTY

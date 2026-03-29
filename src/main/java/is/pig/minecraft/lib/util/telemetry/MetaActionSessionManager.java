@@ -27,7 +27,15 @@ public class MetaActionSessionManager {
     /**
      * Starts a new session and sets it as the current global session.
      */
-    public MetaActionSession startSession(String name) {
+    public synchronized MetaActionSession startSession(String name) {
+        // If a session with this name already exists and is active/monitoring, 
+        // return it instead of creating a new one to prevent log build-up.
+        MetaActionSession existing = namedSessions.get(name);
+        if (existing != null && (existing.getStatus() == SessionStatus.ACTIVE || existing.getStatus() == SessionStatus.MONITORING)) {
+            currentSession.set(existing);
+            return existing;
+        }
+
         MetaActionSession session = new MetaActionSession(name);
         currentSession.set(session);
         namedSessions.put(name, session);
