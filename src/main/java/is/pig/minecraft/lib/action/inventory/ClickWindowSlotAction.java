@@ -14,6 +14,8 @@ public class ClickWindowSlotAction extends AbstractAction {
     private final int button;
     private final ClickType clickType;
     private final Predicate<ItemStack> expectedItemPredicate;
+    private Predicate<ItemStack> expectedCursorBefore = (stack) -> true;
+    private Predicate<ItemStack> expectedCursorAfter = (stack) -> true;
 
     public ClickWindowSlotAction(int containerId, int slotId, int button, ClickType clickType, String sourceMod, is.pig.minecraft.lib.action.ActionPriority priority, Predicate<ItemStack> expectedItemPredicate) {
         super(sourceMod, priority);
@@ -40,6 +42,22 @@ public class ClickWindowSlotAction extends AbstractAction {
         this(containerId, slotId, button, clickType, sourceMod, priority, (stack) -> true);
     }
 
+    public ClickWindowSlotAction withExpectedCursorBefore(Predicate<ItemStack> expected) {
+        this.expectedCursorBefore = expected;
+        return this;
+    }
+
+    public ClickWindowSlotAction withExpectedCursorAfter(Predicate<ItemStack> expected) {
+        this.expectedCursorAfter = expected;
+        return this;
+    }
+
+    @Override
+    public boolean checkPreconditions(Minecraft client) {
+        if (client.player == null) return false;
+        return expectedCursorBefore.test(client.player.containerMenu.getCarried());
+    }
+
     @Override
     protected void onExecute(Minecraft client) {
         Player player = client.player;
@@ -53,7 +71,8 @@ public class ClickWindowSlotAction extends AbstractAction {
         if (client.player != null && client.player.containerMenu != null && client.player.containerMenu.containerId == this.containerId) {
             if (this.slotId >= 0 && this.slotId < client.player.containerMenu.slots.size()) {
                 ItemStack stack = client.player.containerMenu.getSlot(this.slotId).getItem();
-                if (expectedItemPredicate.test(stack)) {
+                ItemStack cursor = client.player.containerMenu.getCarried();
+                if (expectedItemPredicate.test(stack) && expectedCursorAfter.test(cursor)) {
                     return Optional.of(true);
                 }
             }

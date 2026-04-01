@@ -84,7 +84,10 @@ public class PiggyActionQueue {
             // 3. Result Evaluation
             if (result.isPresent()) {
                 queue.poll(); // Remove finished/failed action
-                if (result.get()) {
+                boolean success = result.get();
+                action.getCallback().ifPresent(cb -> cb.onResult(success));
+                
+                if (success) {
                     LOGGER.debug("Completed action '{}'", action.getName());
                 }
             } else {

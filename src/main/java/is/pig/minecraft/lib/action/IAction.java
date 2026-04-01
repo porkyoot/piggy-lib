@@ -40,6 +40,17 @@ public interface IAction {
      * @return True if this action should ignore global CPS rate limits regardless of priority.
      */
     default boolean ignoreGlobalCps() { return false; }
+    
+    /**
+     * @return True if all preconditions (e.g., cursor state, slot content) match the simulation.
+     */
+    default boolean checkPreconditions(Minecraft client) { return true; }
+
+    /**
+     * @return The callback to trigger when this action completes or fails.
+     */
+    default Optional<ActionCallback> getCallback() { return Optional.empty(); }
+
     default boolean isVerified(Minecraft client) { return execute(client).orElse(false); }
     
     String getSourceMod();

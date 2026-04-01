@@ -13,6 +13,7 @@ public abstract class AbstractAction implements IAction {
     private final String sourceMod;
     private final ActionPriority priority;
     private boolean ignoreGlobalCps = false;
+    private java.util.Optional<ActionCallback> callback = java.util.Optional.empty();
 
     public AbstractAction(String sourceMod, ActionPriority priority, int timeoutTicks) {
         this.sourceMod = sourceMod;
@@ -36,8 +37,12 @@ public abstract class AbstractAction implements IAction {
     protected abstract Optional<Boolean> verify(Minecraft client);
 
     @Override
-    public Optional<Boolean> execute(Minecraft client) {
+    public java.util.Optional<Boolean> execute(Minecraft client) {
         if (!initiated) {
+            if (!checkPreconditions(client)) {
+                LOGGER.warn("Preconditions failed for action '{}' - Aborting", getName());
+                return java.util.Optional.of(false);
+            }
             onExecute(client);
             initiated = true;
             return verify(client); // Check immediately (supports 0-tick actions)
@@ -67,6 +72,9 @@ public abstract class AbstractAction implements IAction {
     public void setIgnoreGlobalCps(boolean ignore) { this.ignoreGlobalCps = ignore; }
     @Override
     public boolean ignoreGlobalCps() { return ignoreGlobalCps; }
+    @Override
+    public java.util.Optional<ActionCallback> getCallback() { return callback; }
+    public void setCallback(ActionCallback callback) { this.callback = java.util.Optional.ofNullable(callback); }
     @Override
     public String getName() { return getClass().getSimpleName(); }
 }
