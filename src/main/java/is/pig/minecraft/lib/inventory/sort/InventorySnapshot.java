@@ -56,6 +56,13 @@ public record InventorySnapshot(
      * @return A new InventorySnapshot representing the predicted state.
      */
     public InventorySnapshot applyMoves(List<Move> moves) {
+        return applyMoves(moves, ItemStack::getMaxStackSize);
+    }
+    
+    /**
+     * Predicts the state after applying abstract moves, using a custom capacity provider.
+     */
+    public InventorySnapshot applyMoves(List<Move> moves, java.util.function.ToIntFunction<ItemStack> capacityProvider) {
         // Use a map internally for O(1) slot access during simulation
         Map<Integer, ItemStack> workingSlots = new HashMap<>();
         for (SlotState state : slots) {
@@ -66,60 +73,74 @@ public record InventorySnapshot(
         for (Move move : moves) {
             int idx = move.slotIndex();
             ItemStack slotStack = workingSlots.getOrDefault(idx, ItemStack.EMPTY).copy();
-            
-            if (move instanceof Move.LeftClick) {
-                if (workingCursor.isEmpty()) {
-                    workingCursor = slotStack;
-                    workingSlots.put(idx, ItemStack.EMPTY);
-                } else if (slotStack.isEmpty()) {
-                    int max = workingCursor.getMaxStackSize();
-                    if (workingCursor.getCount() <= max) {
-                        workingSlots.put(idx, workingCursor);
-                        workingCursor = ItemStack.EMPTY;
+            int maxSlotCap = capacityProvider.applyAsInt(slotStack);
+            // Standard cursor capacity is always 64 in modern Minecraft.
+            int maxCursorCap = Math.min(64, slotStack.getMaxStackSize());
+            if (maxCursorCap <= 0) maxCursorCap = 64;
+
+            switch (move.type()) {
+                case PICKUP_ALL -> {
+                    if (workingCursor.isEmpty()) {
+                        int amount = Math.min(slotStack.getCount(), maxCursorCap);
+                        workingCursor = slotStack.copyWithCount(amount);
+                        workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() - amount));
+                    } else if (ItemStack.isSameItemSameComponents(workingCursor, slotStack)) {
+                        int toTransfer = Math.min(maxCursorCap - workingCursor.getCount(), slotStack.getCount());
+                        workingCursor.grow(toTransfer);
+                        workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() - toTransfer));
                     } else {
-                        workingSlots.put(idx, workingCursor.copyWithCount(max));
-                        workingCursor.shrink(max);
+                        // Swap
+                        if (slotStack.getCount() > maxCursorCap && workingCursor.getCount() > maxCursorCap) {
+                            throw new IllegalStateException("Cannot swap two stacks where both exceed cursor capacity: " + slotStack.getCount() + " vs " + workingCursor.getCount());
+                        }
+                        workingSlots.put(idx, workingCursor);
+                        workingCursor = slotStack;
                     }
-                } else if (ItemStack.isSameItemSameComponents(workingCursor, slotStack)) {
-                    int max = slotStack.getMaxStackSize();
-                    int space = max - slotStack.getCount();
-                    int toTransfer = Math.min(space, workingCursor.getCount());
-                    
-                    if (toTransfer > 0) {
+                }
+                case PICKUP_HALF -> {
+                    if (workingCursor.isEmpty() && !slotStack.isEmpty()) {
+                        int half = (slotStack.getCount() + 1) / 2;
+                        int amount = Math.min(half, maxCursorCap);
+                        workingCursor = slotStack.copyWithCount(amount);
+                        workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() - amount));
+                    }
+                }
+                case DEPOSIT_ALL -> {
+                    if (workingCursor.isEmpty()) break;
+                    if (slotStack.isEmpty()) {
+                        int amount = Math.min(workingCursor.getCount(), maxSlotCap);
+                        workingSlots.put(idx, workingCursor.copyWithCount(amount));
+                        workingCursor.shrink(amount);
+                    } else if (ItemStack.isSameItemSameComponents(workingCursor, slotStack)) {
+                        int toTransfer = Math.min(maxSlotCap - slotStack.getCount(), workingCursor.getCount());
                         workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() + toTransfer));
                         workingCursor.shrink(toTransfer);
                     } else {
+                        // Swap logic
+                        if (slotStack.getCount() > maxCursorCap && workingCursor.getCount() > maxCursorCap) {
+                            throw new IllegalStateException("Cannot swap two mega-stacks: " + slotStack.getCount() + " vs " + workingCursor.getCount());
+                        }
                         workingSlots.put(idx, workingCursor);
                         workingCursor = slotStack;
                     }
-                } else {
+                }
+                case DEPOSIT_ONE -> {
+                    if (workingCursor.isEmpty()) break;
+                    if (slotStack.isEmpty() || (ItemStack.isSameItemSameComponents(workingCursor, slotStack) && slotStack.getCount() < maxSlotCap)) {
+                        if (slotStack.isEmpty()) {
+                            workingSlots.put(idx, workingCursor.copyWithCount(1));
+                        } else {
+                            workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() + 1));
+                        }
+                        workingCursor.shrink(1);
+                    }
+                }
+                case SWAP -> {
+                    if (slotStack.getCount() > maxCursorCap && workingCursor.getCount() > maxCursorCap) {
+                        throw new IllegalStateException("Atomic swap prohibited for multiple mega-stacks.");
+                    }
                     workingSlots.put(idx, workingCursor);
                     workingCursor = slotStack;
-                }
-            } else if (move instanceof Move.RightClick) {
-                if (workingCursor.isEmpty()) {
-                    if (!slotStack.isEmpty()) {
-                        int half = (slotStack.getCount() + 1) / 2;
-                        workingCursor = slotStack.copyWithCount(half);
-                        workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() - half));
-                    }
-                } else {
-                    if (slotStack.isEmpty()) {
-                        workingSlots.put(idx, workingCursor.copyWithCount(1));
-                        workingCursor.shrink(1);
-                    } else if (ItemStack.isSameItemSameComponents(workingCursor, slotStack)) {
-                        int max = slotStack.getMaxStackSize();
-                        if (slotStack.getCount() < max) {
-                            workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() + 1));
-                            workingCursor.shrink(1);
-                        } else {
-                            workingSlots.put(idx, workingCursor);
-                            workingCursor = slotStack;
-                        }
-                    } else {
-                        workingSlots.put(idx, workingCursor);
-                        workingCursor = slotStack;
-                    }
                 }
             }
         }

@@ -32,6 +32,12 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
     private int tickDelay = 1;
     public int globalActionCps = 20;
 
+    // Burst Controller (AIMD)
+    private int aimdInitialWindow = 100;
+    private int aimdMinWindow = 1;
+    private int aimdMaxWindow = 500;
+    private int aimdIncreaseStep = 10;
+
     // Logging configurations
     private boolean productionMode = true;
     private int maxLogBufferSize = 5000;
@@ -102,6 +108,49 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
     public void setMaxLogBufferSize(int maxLogBufferSize) {
         this.maxLogBufferSize = maxLogBufferSize;
         PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+
+    public int getAimdInitialWindow() {
+        return aimdInitialWindow;
+    }
+
+    public int getAimdMinWindow() {
+        return aimdMinWindow;
+    }
+
+    public int getAimdMaxWindow() {
+        return aimdMaxWindow;
+    }
+
+    public int getAimdIncreaseStep() {
+        return aimdIncreaseStep;
+    }
+
+    public void setAimdInitialWindow(int initialWindow) {
+        this.aimdInitialWindow = initialWindow;
+        PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+
+    public void setAimdInitialWindowInternal(int initialWindow) {
+        this.aimdInitialWindow = initialWindow;
+    }
+
+    public void setAimdMaxWindow(int maxWindow) {
+        this.aimdMaxWindow = maxWindow;
+        PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+
+    public void setAimdMaxWindowInternal(int maxWindow) {
+        this.aimdMaxWindow = maxWindow;
+    }
+
+    public void setAimdIncreaseStep(int increaseStep) {
+        this.aimdIncreaseStep = increaseStep;
+        PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+
+    public void setAimdIncreaseStepInternal(int increaseStep) {
+        this.aimdIncreaseStep = increaseStep;
     }
 
     /**

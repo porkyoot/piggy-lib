@@ -22,8 +22,8 @@ public class ShadowInventoryTest {
             
             InventorySnapshot initial = new InventorySnapshot(0, slots, gold64.copy());
 
-            // Click on slot 0 (should swap iron and gold)
-            InventorySnapshot next = initial.applyMoves(List.of(new Move.LeftClick(0)));
+            // Click on slot 0 (should swap iron and gold as they are both 64)
+            InventorySnapshot next = initial.applyMoves(List.of(new Move(0, Move.MoveType.SWAP)));
 
             assertEquals(Items.GOLD_INGOT, next.slots().get(0).stack().getItem());
             assertEquals(64, next.slots().get(0).stack().getCount());
@@ -46,7 +46,7 @@ public class ShadowInventoryTest {
             InventorySnapshot initial = new InventorySnapshot(0, slots, ItemStack.EMPTY);
 
             // Right click on slot 0 (should pick up 32)
-            InventorySnapshot next = initial.applyMoves(List.of(new Move.RightClick(0)));
+            InventorySnapshot next = initial.applyMoves(List.of(new Move(0, Move.MoveType.PICKUP_HALF)));
 
             assertEquals(32, next.slots().get(0).stack().getCount());
             assertEquals(32, next.cursor().getCount());
@@ -66,7 +66,7 @@ public class ShadowInventoryTest {
             slots.add(new InventorySnapshot.SlotState(0, slotItem.copy()));
             InventorySnapshot initial = new InventorySnapshot(0, slots, cursorItem.copy());
 
-            InventorySnapshot next = initial.applyMoves(List.of(new Move.LeftClick(0)));
+            InventorySnapshot next = initial.applyMoves(List.of(new Move(0, Move.MoveType.DEPOSIT_ALL)));
 
             assertEquals(48, next.slots().get(0).stack().getCount());
             assertTrue(next.cursor().isEmpty());
@@ -84,7 +84,7 @@ public class ShadowInventoryTest {
             slots.add(new InventorySnapshot.SlotState(0, ItemStack.EMPTY));
             InventorySnapshot initial = new InventorySnapshot(0, slots, cursorItem.copy());
 
-            InventorySnapshot next = initial.applyMoves(List.of(new Move.LeftClick(0)));
+            InventorySnapshot next = initial.applyMoves(List.of(new Move(0, Move.MoveType.DEPOSIT_ALL)));
 
             // Pearls max out at 16
             assertEquals(16, next.slots().get(0).stack().getCount());
@@ -104,11 +104,29 @@ public class ShadowInventoryTest {
             slots.add(new InventorySnapshot.SlotState(0, ItemStack.EMPTY));
             InventorySnapshot initial = new InventorySnapshot(0, slots, cursorItem.copy());
 
-            InventorySnapshot next = initial.applyMoves(List.of(new Move.RightClick(0)));
+            InventorySnapshot next = initial.applyMoves(List.of(new Move(0, Move.MoveType.DEPOSIT_ONE)));
 
             assertEquals(1, next.slots().get(0).stack().getCount());
             assertEquals(Items.IRON_INGOT, next.slots().get(0).stack().getItem());
             assertEquals(9, next.cursor().getCount());
+        } catch (ExceptionInInitializerError | NoClassDefFoundError e) {
+            System.out.println("Skipping real ItemStack test.");
+        }
+    }
+
+    @Test
+    public void testMegaStackSwapProhibited() {
+        try {
+            ItemStack iron100 = new ItemStack(Items.IRON_INGOT, 100);
+            ItemStack gold100 = new ItemStack(Items.GOLD_INGOT, 100);
+
+            List<InventorySnapshot.SlotState> slots = new ArrayList<>();
+            slots.add(new InventorySnapshot.SlotState(0, iron100.copy()));
+            InventorySnapshot initial = new InventorySnapshot(0, slots, gold100.copy());
+
+            assertThrows(IllegalStateException.class, () -> {
+                initial.applyMoves(List.of(new Move(0, Move.MoveType.SWAP)));
+            });
         } catch (ExceptionInInitializerError | NoClassDefFoundError e) {
             System.out.println("Skipping real ItemStack test.");
         }

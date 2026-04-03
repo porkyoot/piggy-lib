@@ -1,5 +1,6 @@
-package is.pig.minecraft.lib.inventory.sort;
+package is.pig.minecraft.lib.action;
 
+import is.pig.minecraft.lib.inventory.sort.Move;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,20 +11,20 @@ public class BurstControllerTest {
     @Test
     public void testAIMDIncreases() {
         BurstController controller = new BurstController();
-        int initial = controller.getCurrentWindow(); // 50
+        int initial = controller.getCurrentWindow(); // 100
         
-        controller.reportSuccess();
-        assertEquals(initial + 5, controller.getCurrentWindow());
+        controller.reportSuccess(0); // 0 ping
+        assertEquals(initial + 10, controller.getCurrentWindow());
         
         // Rapid growth to max
-        for (int i = 0; i < 40; i++) controller.reportSuccess();
-        assertEquals(200, controller.getCurrentWindow());
+        for (int i = 0; i < 50; i++) controller.reportSuccess(0);
+        assertEquals(500, controller.getCurrentWindow());
     }
 
     @Test
     public void testAIMDDecreases() {
         BurstController controller = new BurstController();
-        int initial = controller.getCurrentWindow(); // 50
+        int initial = controller.getCurrentWindow(); // 100
         
         controller.reportDesync();
         assertEquals(initial / 2, controller.getCurrentWindow());
@@ -36,14 +37,14 @@ public class BurstControllerTest {
     @Test
     public void testGetNextBurst() {
         BurstController controller = new BurstController();
-        // Window is 50
+        // Window is 100
         List<Move> moves = new ArrayList<>();
-        for (int i = 0; i < 100; i++) moves.add(new Move.LeftClick(i));
+        for (int i = 0; i < 200; i++) moves.add(new Move(i, Move.MoveType.PICKUP_ALL));
         
         List<Move> burst = controller.getNextBurst(moves);
-        assertEquals(50, burst.size());
+        assertEquals(100, burst.size());
         assertEquals(0, burst.get(0).slotIndex());
-        assertEquals(49, burst.get(49).slotIndex());
+        assertEquals(99, burst.get(99).slotIndex());
         
         // Small list
         List<Move> small = moves.subList(0, 10);

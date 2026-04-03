@@ -1,5 +1,7 @@
 package is.pig.minecraft.lib.inventory.sort;
 
+import is.pig.minecraft.lib.action.BurstController;
+
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
