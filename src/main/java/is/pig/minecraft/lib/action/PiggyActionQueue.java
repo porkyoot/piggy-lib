@@ -89,6 +89,9 @@ public class PiggyActionQueue {
                 
                 if (success) {
                     LOGGER.debug("Completed action '{}'", action.getName());
+                } else {
+                    LOGGER.warn("Action '{}' failed! Clearing queue for mod '{}' to trigger retry.", action.getName(), action.getSourceMod());
+                    clear(action.getSourceMod());
                 }
             } else {
                 break; // Action is waiting for verification. Block queue.

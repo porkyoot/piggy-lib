@@ -4,6 +4,7 @@ import is.pig.minecraft.lib.action.AbstractAction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -16,6 +17,7 @@ public class ClickWindowSlotAction extends AbstractAction {
     private final Predicate<ItemStack> expectedItemPredicate;
     private Predicate<ItemStack> expectedCursorBefore = (stack) -> true;
     private Predicate<ItemStack> expectedCursorAfter = (stack) -> true;
+    private Predicate<ItemStack> expectedSlotBefore = (stack) -> true;
 
     public ClickWindowSlotAction(int containerId, int slotId, int button, ClickType clickType, String sourceMod, is.pig.minecraft.lib.action.ActionPriority priority, Predicate<ItemStack> expectedItemPredicate) {
         super(sourceMod, priority);
@@ -52,9 +54,22 @@ public class ClickWindowSlotAction extends AbstractAction {
         return this;
     }
 
+    public ClickWindowSlotAction withExpectedSlotBefore(Predicate<ItemStack> expected) {
+        this.expectedSlotBefore = expected;
+        return this;
+    }
+
     @Override
     public boolean checkPreconditions(Minecraft client) {
-        if (client.player == null) return false;
+        if (client.player == null || client.player.containerMenu == null) return false;
+        
+        if (this.slotId >= 0 && this.slotId < client.player.containerMenu.slots.size()) {
+            ItemStack stackBefore = client.player.containerMenu.getSlot(this.slotId).getItem();
+            if (!expectedSlotBefore.test(stackBefore)) {
+                return false;
+            }
+        }
+
         return expectedCursorBefore.test(client.player.containerMenu.getCarried());
     }
 
@@ -62,9 +77,12 @@ public class ClickWindowSlotAction extends AbstractAction {
     protected void onExecute(Minecraft client) {
         Player player = client.player;
         if (player != null && client.gameMode != null) {
-            client.gameMode.handleInventoryMouseClick(this.containerId, this.slotId, this.button, this.clickType, player);
+            client.gameMode.handleInventoryMouseClick(this.containerId, this.slotId, this.button, this.clickType,
+                    player);
         }
     }
+    
+    
 
     @Override
     protected Optional<Boolean> verify(Minecraft client) {

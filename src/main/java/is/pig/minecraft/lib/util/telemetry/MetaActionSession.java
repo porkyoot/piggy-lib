@@ -3,8 +3,10 @@ package is.pig.minecraft.lib.util.telemetry;
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 import org.slf4j.event.Level;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.Deque;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +18,7 @@ public class MetaActionSession {
     private final UUID sessionId;
     private final String name;
     private final long startTime;
-    private final LinkedList<TelemetryEntry> buffer = new LinkedList<>();
+    private final Deque<TelemetryEntry> buffer = new ArrayDeque<>(5000);
     private SessionStatus status = SessionStatus.ACTIVE;
     private String failureReason = null;
     private boolean priority = false;
@@ -38,8 +40,7 @@ public class MetaActionSession {
         long currentTick = getCurrentTick();
         buffer.add(new LogEntry(System.currentTimeMillis(), currentTick, level, message));
         
-        int maxBuffer = PiggyClientConfig.getInstance().getMaxLogBufferSize();
-        while (buffer.size() > maxBuffer) {
+        if (buffer.size() > PiggyClientConfig.getInstance().getMaxLogBufferSize()) {
             buffer.removeFirst();
         }
     }
@@ -53,8 +54,7 @@ public class MetaActionSession {
         long currentTick = getCurrentTick();
         buffer.add(new ActionAnatomyEntry(System.currentTimeMillis(), currentTick, Level.INFO, why, how, outcome));
 
-        int maxBuffer = PiggyClientConfig.getInstance().getMaxLogBufferSize();
-        while (buffer.size() > maxBuffer) {
+        if (buffer.size() > PiggyClientConfig.getInstance().getMaxLogBufferSize()) {
             buffer.removeFirst();
         }
     }
@@ -134,7 +134,7 @@ public class MetaActionSession {
     public UUID getSessionId() { return sessionId; }
     public String getName() { return name; }
     public long getStartTime() { return startTime; }
-    public List<TelemetryEntry> getEntries() { return Collections.unmodifiableList(buffer); }
+    public List<TelemetryEntry> getEntries() { return Collections.unmodifiableList(new ArrayList<>(buffer)); }
     public SessionStatus getStatus() { return status; }
     public String getFailureReason() { return failureReason; }
     

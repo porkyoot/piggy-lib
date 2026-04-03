@@ -33,7 +33,7 @@ public class SortingDesyncTest {
             Slot[] slots = { s0, s1 };
             
             SortingClickGenerator generator = new SortingClickGenerator(
-                    currentState, desiredState, slots, 100, 0, "test", ActionPriority.NORMAL);
+                    currentState, desiredState, slots, 100, 0, "test", ActionPriority.NORMAL, ItemStack.EMPTY);
                     
             List<ClickWindowSlotAction> actions = generator.generate();
             
