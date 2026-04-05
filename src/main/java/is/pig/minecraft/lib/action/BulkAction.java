@@ -155,4 +155,9 @@ public class BulkAction implements IAction {
         // Bulk actions generally compose clicks or block places that need rate limiting.
         return true; 
     }
+
+    @Override
+    public String getTelemetry(net.minecraft.client.Minecraft client) {
+        return String.format("Progress=%d/%d, WaitTicks=%d, Timeout=%d", currentIndex, subActions.size(), waitTicks, timeoutTicks);
+    }
 }

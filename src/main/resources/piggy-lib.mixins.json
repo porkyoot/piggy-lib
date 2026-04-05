@@ -2,7 +2,9 @@
     "required": true,
     "package": "is.pig.minecraft.lib.mixin",
     "compatibilityLevel": "JAVA_21",
-    "mixins": [],
+    "mixins": [
+        "inventory.AbstractContainerMenuMixin"
+    ],
     "injectors": {
         "defaultRequire": 1
     },

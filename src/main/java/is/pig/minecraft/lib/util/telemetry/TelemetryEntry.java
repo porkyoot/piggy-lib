@@ -9,5 +9,9 @@ public interface TelemetryEntry {
     long timestamp();
     long tick();
     Level level();
+    double tps();
+    double mspt();
+    double cps();
+    String pos();
     String formatted();
 }

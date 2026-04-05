@@ -1,6 +1,7 @@
 package is.pig.minecraft.lib.action;
 
 import is.pig.minecraft.lib.util.PiggyLog;
+import is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager;
 import net.minecraft.client.Minecraft;
 
 import java.util.List;
@@ -114,6 +115,8 @@ public class BurstBulkAction implements IAction {
                     }
                     
                     LOGGER.warn("BurstBulkAction '{}' timed out ({}). Decreasing window.", name, consecutiveDesyncs);
+                    MetaActionSessionManager.getInstance().log(org.slf4j.event.Level.WARN, 
+                        String.format("Burst '%s' timed out (%d/%d consecutive desyncs)", name, consecutiveDesyncs, MAX_CONSECUTIVE_DESYNCS));
                     burstController.reportDesync();
                     state = State.PLANNING; // Re-plan from the drift
                     return Optional.empty();
@@ -143,4 +146,13 @@ public class BurstBulkAction implements IAction {
 
     @Override
     public Optional<ActionCallback> getCallback() { return Optional.ofNullable(callback); }
+
+    @Override
+    public String getTelemetry(net.minecraft.client.Minecraft client) {
+        return String.format("Window=%d, State=%s, Desyncs=%d/%d", 
+            burstController.getCurrentWindow(), 
+            state, 
+            consecutiveDesyncs, 
+            MAX_CONSECUTIVE_DESYNCS);
+    }
 }

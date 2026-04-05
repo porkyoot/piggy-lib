@@ -107,4 +107,23 @@ public class ClickWindowSlotAction extends AbstractAction {
     public boolean isClick() {
         return true;
     }
+
+    @Override
+    public String getTelemetry(Minecraft client) {
+        String itemInfo = "n/a";
+        String cursorInfo = "n/a";
+        
+        if (client.player != null && client.player.containerMenu != null) {
+            ItemStack cursorStack = client.player.containerMenu.getCarried();
+            cursorInfo = cursorStack.isEmpty() ? "Air" : cursorStack.getItem().toString() + " x" + cursorStack.getCount();
+            
+            if (slotId >= 0 && slotId < client.player.containerMenu.slots.size()) {
+                ItemStack slotStack = client.player.containerMenu.getSlot(slotId).getItem();
+                itemInfo = slotStack.isEmpty() ? "Air" : slotStack.getItem().toString() + " x" + slotStack.getCount();
+            }
+        }
+        
+        return String.format("Slot=%d, Button=%d, Type=%s | SlotItem: %s, Cursor: %s", 
+            slotId, button, clickType, itemInfo, cursorInfo);
+    }
 }

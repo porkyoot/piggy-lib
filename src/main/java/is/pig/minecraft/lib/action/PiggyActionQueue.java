@@ -2,6 +2,7 @@ package is.pig.minecraft.lib.action;
 
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 import is.pig.minecraft.lib.util.PiggyLog;
+import is.pig.minecraft.lib.action.telemetry.ActionForensics;
 import net.minecraft.client.Minecraft;
 
 import java.util.Optional;
@@ -41,6 +42,7 @@ public class PiggyActionQueue {
      * @param action The stateful action to execute.
      */
     public void enqueue(IAction action) {
+        ActionForensics.getInstance().log("ENQUEUED", action, "Priority="+action.getPriority()+", IsClick="+action.isClick());
         queue.put(new PrioritizedAction(action, sequenceNumber.getAndIncrement()));
     }
 
@@ -74,6 +76,7 @@ public class PiggyActionQueue {
 
             // 2. Execution
             boolean justInitiated = !action.isInitiated();
+            ActionForensics.getInstance().log(justInitiated ? "EXECUTING" : "VERIFYING", action, "TicksSinceClick=" + ticksSinceLastClick);
             Optional<Boolean> result = action.execute(client);
             
             if (justInitiated && action.isClick() && action.isInitiated()) {
@@ -89,11 +92,14 @@ public class PiggyActionQueue {
                 
                 if (success) {
                     LOGGER.debug("Completed action '{}'", action.getName());
+                    ActionForensics.getInstance().log("COMPLETED", action, "Success (ClicksSinceStart=" + ticksSinceLastClick + ")");
                 } else {
                     LOGGER.warn("Action '{}' failed! Clearing queue for mod '{}' to trigger retry.", action.getName(), action.getSourceMod());
+                    ActionForensics.getInstance().log("FAILED", action, "Failure/Timeout (ClicksSinceStart=" + ticksSinceLastClick + ")");
                     clear(action.getSourceMod());
                 }
             } else {
+                ActionForensics.getInstance().log("PENDING", action, "Waiting for verification");
                 break; // Action is waiting for verification. Block queue.
             }
         }

@@ -85,13 +85,14 @@ public record InventorySnapshot(
                         workingCursor = slotStack.copyWithCount(amount);
                         workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() - amount));
                     } else if (ItemStack.isSameItemSameComponents(workingCursor, slotStack)) {
-                        int toTransfer = Math.min(maxCursorCap - workingCursor.getCount(), slotStack.getCount());
+                        // FIX: Empêcher l'espace négatif
+                        int spaceLeft = Math.max(0, maxCursorCap - workingCursor.getCount());
+                        int toTransfer = Math.min(spaceLeft, slotStack.getCount());
                         workingCursor.grow(toTransfer);
                         workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() - toTransfer));
                     } else {
-                        // Swap
                         if (slotStack.getCount() > maxCursorCap && workingCursor.getCount() > maxCursorCap) {
-                            throw new IllegalStateException("Cannot swap two stacks where both exceed cursor capacity: " + slotStack.getCount() + " vs " + workingCursor.getCount());
+                            throw new IllegalStateException("Cannot swap two stacks where both exceed cursor capacity");
                         }
                         workingSlots.put(idx, workingCursor);
                         workingCursor = slotStack;
@@ -112,13 +113,14 @@ public record InventorySnapshot(
                         workingSlots.put(idx, workingCursor.copyWithCount(amount));
                         workingCursor.shrink(amount);
                     } else if (ItemStack.isSameItemSameComponents(workingCursor, slotStack)) {
-                        int toTransfer = Math.min(maxSlotCap - slotStack.getCount(), workingCursor.getCount());
+                        // FIX: Empêcher le transfert négatif sur les méga-stacks
+                        int spaceLeft = Math.max(0, maxSlotCap - slotStack.getCount());
+                        int toTransfer = Math.min(spaceLeft, workingCursor.getCount());
                         workingSlots.put(idx, slotStack.copyWithCount(slotStack.getCount() + toTransfer));
                         workingCursor.shrink(toTransfer);
                     } else {
-                        // Swap logic
                         if (slotStack.getCount() > maxCursorCap && workingCursor.getCount() > maxCursorCap) {
-                            throw new IllegalStateException("Cannot swap two mega-stacks: " + slotStack.getCount() + " vs " + workingCursor.getCount());
+                            throw new IllegalStateException("Cannot swap two mega-stacks");
                         }
                         workingSlots.put(idx, workingCursor);
                         workingCursor = slotStack;

@@ -16,7 +16,9 @@ public class TelemetryTest {
     void setup() throws Exception {
         java.lang.reflect.Method setInstance = PiggyClientConfig.class.getDeclaredMethod("setGlobalInstance", PiggyClientConfig.class);
         setInstance.setAccessible(true);
-        setInstance.invoke(null, new DummyConfig());
+        DummyConfig config = new DummyConfig();
+        config.setMaxLogBufferSize(100);
+        setInstance.invoke(null, config);
     }
 
     @Test

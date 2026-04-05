@@ -54,6 +54,7 @@ public class PiggyConfigRegistry {
             if (config != source) {
                 config.setNoCheatingModeInternal(source.isNoCheatingMode());
                 config.setTickDelayInternal(source.getTickDelay());
+                config.setFullActionDebugInternal(source.isFullActionDebug());
                 config.save();
             }
         }

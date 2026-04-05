@@ -32,13 +32,30 @@ public class MetaActionSession {
     }
 
     /**
-     * Records a message into the rolling buffer.
+     * Records a message into the rolling buffer with full telemetry verbosity.
      */
     public synchronized void log(Level level, String message) {
         if (status != SessionStatus.ACTIVE && status != SessionStatus.MONITORING) return;
 
         long currentTick = getCurrentTick();
-        buffer.add(new LogEntry(System.currentTimeMillis(), currentTick, level, message));
+        var perf = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance();
+        
+        String posStr = "n/a";
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc != null && mc.player != null) {
+            var p = mc.player;
+            posStr = String.format("(%.1f,%.1f,%.1f)", p.getX(), p.getY(), p.getZ());
+        }
+
+        buffer.add(new LogEntry(
+            System.currentTimeMillis(), 
+            currentTick, 
+            level, 
+            perf.getServerTps(), 
+            perf.getClientMspt(), 
+            perf.getCps(), 
+            posStr, 
+            message));
         
         if (buffer.size() > PiggyClientConfig.getInstance().getMaxLogBufferSize()) {
             buffer.removeFirst();
@@ -46,13 +63,32 @@ public class MetaActionSession {
     }
 
     /**
-     * Records a structured micro-action into the rolling buffer.
+     * Records a structured micro-action into the rolling buffer with full telemetry verbosity.
      */
     public synchronized void logAction(String why, String how, String outcome) {
         if (status != SessionStatus.ACTIVE && status != SessionStatus.MONITORING) return;
 
         long currentTick = getCurrentTick();
-        buffer.add(new ActionAnatomyEntry(System.currentTimeMillis(), currentTick, Level.INFO, why, how, outcome));
+        var perf = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance();
+
+        String posStr = "n/a";
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc != null && mc.player != null) {
+            var p = mc.player;
+            posStr = String.format("(%.1f,%.1f,%.1f)", p.getX(), p.getY(), p.getZ());
+        }
+
+        buffer.add(new ActionAnatomyEntry(
+            System.currentTimeMillis(), 
+            currentTick, 
+            Level.INFO, 
+            perf.getServerTps(), 
+            perf.getClientMspt(), 
+            perf.getCps(), 
+            posStr, 
+            why, 
+            how, 
+            outcome));
 
         if (buffer.size() > PiggyClientConfig.getInstance().getMaxLogBufferSize()) {
             buffer.removeFirst();

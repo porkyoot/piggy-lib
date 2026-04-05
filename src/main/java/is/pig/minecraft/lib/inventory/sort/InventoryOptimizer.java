@@ -11,13 +11,25 @@ import java.util.stream.Collectors;
  */
 public class InventoryOptimizer {
 
-    private java.util.function.ToIntFunction<ItemStack> getCapacityProvider(InventorySnapshot targetSnapshot) {
+    // NOUVELLE SIGNATURE : Prend le Current ET le Target pour analyser la capacité réelle
+    private java.util.function.ToIntFunction<ItemStack> getCapacityProvider(InventorySnapshot currentSnapshot, InventorySnapshot targetSnapshot) {
         if (targetSnapshot == null) return ItemStack::getMaxStackSize;
         Map<ItemKey, Integer> capacities = new HashMap<>();
-        for (InventorySnapshot.SlotState slot : targetSnapshot.slots()) {
+        
+        List<InventorySnapshot.SlotState> allSlots = new ArrayList<>(targetSnapshot.slots());
+        if (currentSnapshot != null) allSlots.addAll(currentSnapshot.slots());
+
+        for (InventorySnapshot.SlotState slot : allSlots) {
             if (slot.stack().isEmpty()) continue;
             ItemKey key = new ItemKey(slot.stack());
-            capacities.put(key, Math.max(capacities.getOrDefault(key, slot.stack().getMaxStackSize()), slot.stack().getCount()));
+            
+            // Si l'item dépasse sa limite Vanilla, c'est un Méga-Stack.
+            // On lève la limite (MAX_VALUE) pour que la simulation ne bloque aucun clic.
+            if (slot.stack().getCount() > slot.stack().getMaxStackSize()) {
+                capacities.put(key, Integer.MAX_VALUE);
+            } else {
+                capacities.put(key, Math.max(capacities.getOrDefault(key, slot.stack().getMaxStackSize()), slot.stack().getCount()));
+            }
         }
         return stack -> capacities.getOrDefault(new ItemKey(stack), stack.getMaxStackSize());
     }
@@ -38,42 +50,58 @@ public class InventoryOptimizer {
      * Items in their correct 'home' slots are ignored during this pass.
      */
     public List<Move> consolidate(InventorySnapshot currentState, InventorySnapshot targetSnapshot) {
-        if (targetSnapshot == null) return new ArrayList<>(); // Baseline behavior requires a target for positioning-aware consolidation
+        if (targetSnapshot == null) return new ArrayList<>(); 
         
-        java.util.function.ToIntFunction<ItemStack> capacityProvider = getCapacityProvider(targetSnapshot);
+        java.util.function.ToIntFunction<ItemStack> capacityProvider = getCapacityProvider(currentState, targetSnapshot);
         List<Move> moves = new ArrayList<>();
         InventorySnapshot virtual = currentState;
         Map<Integer, ItemStack> targetMap = toMap(targetSnapshot.slots());
-
-        // Group items by type (Item + Components)
-        Map<ItemKey, List<Integer>> floatingStacks = new HashMap<>();
         Map<Integer, ItemStack> slotMap = toMap(virtual.slots());
 
+        // Grouper TOUS les items par type (ItemKey)
+        Map<ItemKey, List<Integer>> itemLocations = new HashMap<>();
         for (InventorySnapshot.SlotState slot : virtual.slots()) {
             if (slot.stack().isEmpty()) continue;
-            
-            // Target-Aware Lock: If the item is already in one of its target 'Home' slots,
-            // don't treat it as floating clutter. We only consolidate misplaced items.
-            if (isHome(slot.index(), slot.stack(), targetMap)) {
-                continue; 
-            }
-
-            // It's a 'Floating' stack (misplaced clutter)
             ItemKey key = new ItemKey(slot.stack());
-            floatingStacks.computeIfAbsent(key, k -> new ArrayList<>()).add(slot.index());
+            itemLocations.computeIfAbsent(key, k -> new ArrayList<>()).add(slot.index());
         }
 
-        for (Map.Entry<ItemKey, List<Integer>> entry : floatingStacks.entrySet()) {
-            List<Integer> floatingIndices = entry.getValue();
-            if (floatingIndices.size() < 2) continue;
+        for (Map.Entry<ItemKey, List<Integer>> entry : itemLocations.entrySet()) {
+            List<Integer> indices = entry.getValue();
+            if (indices.size() < 2) continue;
 
-            // Sort floating indices by count (ascending) to empty smaller stacks first
-            floatingIndices.sort(Comparator.comparingInt(i -> slotMap.get(i).getCount()));
+            // Tri intelligent : 
+            // 1. Stacks Flottants (Sources) au début. Stacks "Home" (Destinations) à la fin.
+            // 2. Flottants : on vide les plus petits en premier.
+            // 3. Home : on remplit les plus gros en premier.
+            indices.sort((idx1, idx2) -> {
+                boolean home1 = isHome(idx1, slotMap.get(idx1), targetMap);
+                boolean home2 = isHome(idx2, slotMap.get(idx2), targetMap);
+                
+                if (home1 != home2) return home1 ? 1 : -1; 
+                
+                int count1 = slotMap.get(idx1).getCount();
+                int count2 = slotMap.get(idx2).getCount();
+                
+                if (!home1) {
+                    return Integer.compare(count1, count2);
+                } else {
+                    return Integer.compare(count2, count1); 
+                }
+            });
 
-            for (int i = 0; i < floatingIndices.size() - 1; i++) {
-                int sourceIdx = floatingIndices.get(i);
-                for (int j = floatingIndices.size() - 1; j > i; j--) {
-                    int targetIdx = floatingIndices.get(j);
+            for (int i = 0; i < indices.size() - 1; i++) {
+                int sourceIdx = indices.get(i);
+                
+                // Ne pas vider un slot "Home" s'il est déjà correctement placé
+                // Sauf si on veut condenser plusieurs slots Home entre eux (mais rare)
+                if (isHome(sourceIdx, slotMap.get(sourceIdx), targetMap)) {
+                    int cap = capacityProvider.applyAsInt(slotMap.get(sourceIdx));
+                    if (slotMap.get(sourceIdx).getCount() >= cap) continue;
+                }
+
+                for (int j = indices.size() - 1; j > i; j--) {
+                    int targetIdx = indices.get(j);
                     
                     ItemStack source = slotMap.get(sourceIdx);
                     ItemStack target = slotMap.get(targetIdx);
@@ -81,7 +109,7 @@ public class InventoryOptimizer {
 
                     int max = capacityProvider.applyAsInt(target);
                     int space = max - target.getCount();
-                    if (space <= 0) continue;
+                    if (space <= 0) continue; 
 
                     int toMove = Math.min(space, source.getCount());
                     
@@ -90,14 +118,13 @@ public class InventoryOptimizer {
                         moves.addAll(transferSteps);
                         virtual = virtual.applyMoves(transferSteps, capacityProvider);
                         
-                        // Update local state for next iteration
-                        slotMap.put(sourceIdx, virtual.slots().stream().filter(s -> s.index() == sourceIdx).findFirst().map(InventorySnapshot.SlotState::stack).orElse(ItemStack.EMPTY));
-                        slotMap.put(targetIdx, virtual.slots().stream().filter(s -> s.index() == targetIdx).findFirst().map(InventorySnapshot.SlotState::stack).orElse(ItemStack.EMPTY));
+                        // Mettre à jour l'état local pour l'itération suivante
+                        slotMap.put(sourceIdx, getStack(virtual, sourceIdx));
+                        slotMap.put(targetIdx, getStack(virtual, targetIdx));
                     }
                 }
             }
         }
-
         return moves;
     }
 
@@ -106,7 +133,7 @@ public class InventoryOptimizer {
      * Switches to 'Drain Mode' for mega-stacks (> 64) and enforces unidirectional flow.
      */
     public List<Move> planCycles(InventorySnapshot current, InventorySnapshot targetSnapshot) {
-        java.util.function.ToIntFunction<ItemStack> capacityProvider = getCapacityProvider(targetSnapshot);
+        java.util.function.ToIntFunction<ItemStack> capacityProvider = getCapacityProvider(current, targetSnapshot);
         List<Move> moves = new ArrayList<>();
         InventorySnapshot virtual = current;
         Map<Integer, ItemStack> targetMap = toMap(targetSnapshot.slots());
@@ -265,8 +292,16 @@ public class InventoryOptimizer {
 
     private int findDestination(ItemStack cursor, Map<Integer, ItemStack> targetMap, Set<Integer> visited, List<Integer> allIndices) {
         for (int i : allIndices) {
+            // Si le slot a déjà parfaitement atteint sa cible finale (quantité incluse), on l'ignore.
             if (visited.contains(i)) continue;
-            if (isSame(cursor, targetMap.get(i))) return i;
+            
+            ItemStack targetStack = targetMap.getOrDefault(i, ItemStack.EMPTY);
+            
+            // On utilise isItemMatch et NON isSame.
+            // Le slot veut ce type d'objet, peu importe combien on en a actuellement dans la main.
+            if (isItemMatch(cursor, targetStack)) {
+                return i;
+            }
         }
         return -1;
     }

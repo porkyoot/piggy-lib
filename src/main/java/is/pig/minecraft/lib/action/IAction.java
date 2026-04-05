@@ -52,6 +52,12 @@ public interface IAction {
     default Optional<ActionCallback> getCallback() { return Optional.empty(); }
 
     default boolean isVerified(Minecraft client) { return execute(client).orElse(false); }
+
+    /**
+     * @param client The Minecraft client instance.
+     * @return Context-specific telemetry details for forensic logging (e.g., "Slot=5, Item=Bucket").
+     */
+    default String getTelemetry(Minecraft client) { return null; }
     
     String getSourceMod();
     String getName();

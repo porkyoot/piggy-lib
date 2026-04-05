@@ -41,6 +41,7 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
     // Logging configurations
     private boolean productionMode = true;
     private int maxLogBufferSize = 5000;
+    private boolean fullActionDebug = true;
 
     public abstract void save();
                                                                                                 // overrides
@@ -108,6 +109,19 @@ public abstract class PiggyClientConfig<T extends PiggyClientConfig<T>> {
     public void setMaxLogBufferSize(int maxLogBufferSize) {
         this.maxLogBufferSize = maxLogBufferSize;
         PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+
+    public boolean isFullActionDebug() {
+        return fullActionDebug;
+    }
+
+    public void setFullActionDebug(boolean fullActionDebug) {
+        this.fullActionDebug = fullActionDebug;
+        PiggyConfigRegistry.getInstance().syncSharedSettings(this);
+    }
+
+    public void setFullActionDebugInternal(boolean fullActionDebug) {
+        this.fullActionDebug = fullActionDebug;
     }
 
     public int getAimdInitialWindow() {
