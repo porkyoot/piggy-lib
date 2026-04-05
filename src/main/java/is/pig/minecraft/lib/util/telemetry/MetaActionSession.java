@@ -7,7 +7,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -24,38 +26,47 @@ public class MetaActionSession {
     private boolean priority = false;
     private long lastTickCount = 0;
     private int monitorTicks = 0;
+    private final List<LogEnricher> enrichers = new ArrayList<>();
 
     public MetaActionSession(String name) {
         this.sessionId = UUID.randomUUID();
         this.name = name;
         this.startTime = System.currentTimeMillis();
+        this.enrichers.add(new StandardEnvironmentEnricher());
+    }
+
+    /**
+     * Adds a custom enricher to this session.
+     * @param enricher the enricher to add
+     */
+    public void addEnricher(LogEnricher enricher) {
+        this.enrichers.add(enricher);
     }
 
     /**
      * Records a message into the rolling buffer with full telemetry verbosity.
      */
     public synchronized void log(Level level, String message) {
+        log(level, message, null);
+    }
+
+    private synchronized void log(Level level, String message, String narrative) {
         if (status != SessionStatus.ACTIVE && status != SessionStatus.MONITORING) return;
 
         long currentTick = getCurrentTick();
-        var perf = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance();
-        
-        String posStr = "n/a";
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc != null && mc.player != null) {
-            var p = mc.player;
-            posStr = String.format("(%.1f,%.1f,%.1f)", p.getX(), p.getY(), p.getZ());
-        }
+        Map<String, Object> data = new HashMap<>();
+        enrichers.forEach(e -> e.enrich(data));
 
         buffer.add(new LogEntry(
             System.currentTimeMillis(), 
             currentTick, 
             level, 
-            perf.getServerTps(), 
-            perf.getClientMspt(), 
-            perf.getCps(), 
-            posStr, 
-            message));
+            (double) data.getOrDefault("tps", 20.0), 
+            (double) data.getOrDefault("mspt", 50.0), 
+            (double) data.getOrDefault("cps", 0.0), 
+            (String) data.getOrDefault("pos", "n/a"), 
+            message,
+            narrative));
         
         if (buffer.size() > PiggyClientConfig.getInstance().getMaxLogBufferSize()) {
             buffer.removeFirst();
@@ -69,23 +80,17 @@ public class MetaActionSession {
         if (status != SessionStatus.ACTIVE && status != SessionStatus.MONITORING) return;
 
         long currentTick = getCurrentTick();
-        var perf = is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance();
-
-        String posStr = "n/a";
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc != null && mc.player != null) {
-            var p = mc.player;
-            posStr = String.format("(%.1f,%.1f,%.1f)", p.getX(), p.getY(), p.getZ());
-        }
+        Map<String, Object> data = new HashMap<>();
+        enrichers.forEach(e -> e.enrich(data));
 
         buffer.add(new ActionAnatomyEntry(
             System.currentTimeMillis(), 
             currentTick, 
             Level.INFO, 
-            perf.getServerTps(), 
-            perf.getClientMspt(), 
-            perf.getCps(), 
-            posStr, 
+            (double) data.getOrDefault("tps", 20.0), 
+            (double) data.getOrDefault("mspt", 50.0), 
+            (double) data.getOrDefault("cps", 0.0), 
+            (String) data.getOrDefault("pos", "n/a"), 
             why, 
             how, 
             outcome));
@@ -111,6 +116,25 @@ public class MetaActionSession {
     public void warn(String message) { log(Level.WARN, message); }
     public void error(String message) { log(Level.ERROR, message); }
     public void debug(String message) { log(Level.DEBUG, message); }
+
+    /**
+     * Humanizes and records a structured event into the session buffer after global enrichment.
+     * @param event the structured event to log
+     */
+    public synchronized void logEvent(StructuredEvent event) {
+        StructuredEventDispatcher.getInstance().dispatch(event);
+    }
+    
+    /**
+     * Records an enriched structured event into the session buffer.
+     * @param view the enriched event view from the dispatcher
+     */
+    public synchronized void logEnrichedEvent(StructuredEventDispatcher.EnrichedEventView view) {
+        StructuredEvent event = view.parent();
+        String technical = event.getEventKey() + " " + view.enrichedData();
+        String narrative = is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter.formatNarrative(event);
+        this.log(event.level(), technical, narrative);
+    }
     
     /**
      * Moves the session into a monitoring state for a specified number of ticks.

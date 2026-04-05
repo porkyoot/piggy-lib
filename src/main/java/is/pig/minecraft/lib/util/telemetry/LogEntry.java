@@ -13,11 +13,16 @@ public record LogEntry(
     double mspt,
     double cps,
     String pos,
-    String message
+    String message,
+    String narrative
 ) implements TelemetryEntry {
     @Override
     public String formatted() {
-        return String.format("[%d] [Tick:%d] [%s] [TPS:%.1f MSPT:%.1f CPS:%.1f Pos:%s] %s", 
+        String base = String.format("[%d] [Tick:%d] [%s] [TPS:%.1f MSPT:%.1f CPS:%.1f Pos:%s] %s", 
             timestamp, tick, level, tps, mspt, cps, pos, message);
+        if (narrative != null && !narrative.isEmpty()) {
+            return base + " | " + narrative;
+        }
+        return base;
     }
 }

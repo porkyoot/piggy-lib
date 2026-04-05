@@ -8,7 +8,37 @@ import net.minecraft.network.chat.Component;
  */
 public final class I18n {
 
+    private static final I18n INSTANCE = new I18n();
+
     private I18n() {}
+
+    /**
+     * @return the singleton instance of I18n for use as an object reference.
+     */
+    public static I18n getInstance() {
+        return INSTANCE;
+    }
+
+    /**
+     * Translates a given key into a human-readable string using the current locale mapping.
+     * This uses {@link net.minecraft.locale.Language} for underlying lookups.
+     *
+     * @param key the translation key
+     * @param args the formatting arguments to satisfy placeholder requirements
+     * @return the translated string, or the key itself if no mapping is found
+     */
+    public String translate(String key, Object... args) {
+        net.minecraft.locale.Language language = net.minecraft.locale.Language.getInstance();
+        String msg = (language != null) ? language.getOrDefault(key) : key;
+        if (args.length > 0) {
+            try {
+                return String.format(msg, args);
+            } catch (java.util.IllegalFormatException e) {
+                return msg;
+            }
+        }
+        return msg;
+    }
 
     public static Component safetyTooltip() {
         return Component.literal("Configure safety and anti-cheat settings.");
@@ -22,3 +52,4 @@ public final class I18n {
         return Component.literal("Anti-Cheat Active: Disable 'No Cheating Mode' in settings to use.");
     }
 }
+

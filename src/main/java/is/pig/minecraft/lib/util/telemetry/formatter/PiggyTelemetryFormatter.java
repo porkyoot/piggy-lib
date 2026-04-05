@@ -7,7 +7,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.entity.LivingEntity;
+import is.pig.minecraft.lib.util.telemetry.StructuredEvent;
+import is.pig.minecraft.lib.util.telemetry.EventTranslatorRegistry;
+import is.pig.minecraft.lib.I18n;
+import java.util.function.BiFunction;
+import java.util.Map;
+import java.util.TreeMap;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,6 +21,37 @@ import java.util.stream.Collectors;
  * Standardized telemetry formatting for Minecraft game objects.
  */
 public class PiggyTelemetryFormatter {
+
+    /**
+     * Translates a structured event into a human-readable narrative.
+     * Use this as the 'Narrative Engine' to generate descriptive stories from telemetry data.
+     */
+    public static String formatNarrative(StructuredEvent event) {
+        if (event == null) return "Unknown Event";
+        
+        String translatedAndFormattedString;
+        BiFunction<StructuredEvent, I18n, String> translator = EventTranslatorRegistry.getInstance().getTranslator(event.getClass());
+        
+        if (translator != null) {
+            translatedAndFormattedString = translator.apply(event, I18n.getInstance());
+        } else {
+            // Generic Narrative Engine Fallback
+            String template = I18n.getInstance().translate(event.getEventKey());
+            if (template.equals(event.getEventKey())) {
+                translatedAndFormattedString = "[No Narrative] " + event.getEventKey() + ": " + event.getEventData();
+            } else {
+                try {
+                    // Sort keys to provide deterministic positional arguments for String.format
+                    Map<String, Object> sortedData = new TreeMap<>(event.getEventData());
+                    translatedAndFormattedString = String.format(template, sortedData.values().toArray());
+                } catch (Exception e) {
+                    translatedAndFormattedString = "[Narrative Error] " + template + " | Data: " + event.getEventData();
+                }
+            }
+        }
+        
+        return String.format("[%s] %s", event.getCategoryIcon(), translatedAndFormattedString);
+    }
 
     public static String formatItem(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return "[Item|empty]";
