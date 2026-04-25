@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
+import is.pig.minecraft.lib.util.CompatibilityHelper;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
@@ -30,10 +31,10 @@ public class InteractBlockAction extends AbstractAction {
             InteractionResult result = client.gameMode.useItemOn(client.player, this.hand, this.hitResult);
             if (!result.consumesAction()) {
                 InteractionResult useResult = client.gameMode.useItem(client.player, this.hand);
-                if (useResult.shouldSwing() || result.shouldSwing()) {
+                if (CompatibilityHelper.shouldSwing(useResult) || CompatibilityHelper.shouldSwing(result)) {
                     client.player.swing(this.hand);
                 }
-            } else if (result.shouldSwing()) {
+            } else if (CompatibilityHelper.shouldSwing(result)) {
                 client.player.swing(this.hand);
             }
         }

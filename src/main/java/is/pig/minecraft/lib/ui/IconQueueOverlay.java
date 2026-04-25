@@ -1,19 +1,11 @@
 package is.pig.minecraft.lib.ui;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
-import org.joml.Matrix4f;
+import is.pig.minecraft.lib.util.CompatibilityHelper;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -115,46 +107,10 @@ public class IconQueueOverlay {
                 int iconY = baseY + (index * VERTICAL_SPACING);
                 float alpha = qi.getAlpha();
 
-                // Build custom render type for inverted colors
-                RenderType invertedType = RenderType.create(
-                        "piggy_gui_inverted_" + qi.icon.getPath().replace("/", "_"),
-                        DefaultVertexFormat.POSITION_TEX_COLOR,
-                        VertexFormat.Mode.QUADS,
-                        1536,
-                        false,
-                        false,
-                        RenderType.CompositeState.builder()
-                                .setShaderState(new RenderStateShard.ShaderStateShard(GameRenderer::getPositionTexColorShader))
-                                .setTextureState(new RenderStateShard.TextureStateShard(qi.icon, false, false))
-                                .setTransparencyState(new RenderStateShard.TransparencyStateShard("gui_inverted_transparency", () -> {
-                                    RenderSystem.enableBlend();
-                                    RenderSystem.blendFuncSeparate(
-                                            GlStateManager.SourceFactor.ONE_MINUS_DST_COLOR,
-                                            GlStateManager.DestFactor.ONE_MINUS_SRC_COLOR,
-                                            GlStateManager.SourceFactor.ONE,
-                                            GlStateManager.DestFactor.ZERO);
-                                }, () -> {
-                                    RenderSystem.disableBlend();
-                                    RenderSystem.defaultBlendFunc();
-                                }))
-                                .createCompositeState(false)
-                );
+                CompatibilityHelper.setColor(graphics, 1.0f, 1.0f, 1.0f, alpha);
+                CompatibilityHelper.blit(graphics, qi.icon, baseX, iconY, 0f, 0f, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+                CompatibilityHelper.setColor(graphics, 1.0f, 1.0f, 1.0f, 1.0f);
 
-                VertexConsumer buffer = graphics.bufferSource().getBuffer(invertedType);
-                Matrix4f matrix = graphics.pose().last().pose();
-
-                float x1 = (float) baseX;
-                float y1 = (float) iconY;
-                float x2 = (float) (baseX + ICON_SIZE);
-                float y2 = (float) (iconY + ICON_SIZE);
-
-                // Add vertices (scaling RGB by alpha enables fading with inverted blend mode)
-                buffer.addVertex(matrix, x1, y1, 0).setUv(0, 0).setColor(alpha, alpha, alpha, alpha);
-                buffer.addVertex(matrix, x1, y2, 0).setUv(0, 1).setColor(alpha, alpha, alpha, alpha);
-                buffer.addVertex(matrix, x2, y2, 0).setUv(1, 1).setColor(alpha, alpha, alpha, alpha);
-                buffer.addVertex(matrix, x2, y1, 0).setUv(1, 0).setColor(alpha, alpha, alpha, alpha);
-
-                graphics.flush();
                 index++;
             }
         }

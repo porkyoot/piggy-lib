@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.renderer.RenderType;
+import is.pig.minecraft.lib.util.CompatibilityHelper;
 
 import java.awt.Color;
 import java.util.List;
@@ -216,61 +217,52 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         poseStack.pushPose();
         poseStack.translate(0, 0, 10);
 
-        // Use GuiGraphics built-in batch buffer for transparency instead of
-        // RenderSystem
-        VertexConsumer buffer = graphics.bufferSource().getBuffer(RenderType.gui());
         Matrix4f mat = poseStack.last().pose();
-
-        double dx = mx - cx;
-        double dy = my - cy;
-        double dist = Math.sqrt(dx * dx + dy * dy);
-        double angle = Math.atan2(dy, dx) - Math.toRadians(-90);
-        if (angle < 0) angle += 2 * Math.PI;
-
         double anglePerItem = (2 * Math.PI) / radialItems.size();
-        int hoveredIndex = (int) (angle / anglePerItem) % radialItems.size();
 
-        for (int i = 0; i < radialItems.size(); i++) {
-            T item = radialItems.get(i);
-            
-            double start = (i * anglePerItem) - Math.toRadians(90);
-            double end = ((i + 1) * anglePerItem) - Math.toRadians(90);
-            double gap = Math.toRadians(2);
+        CompatibilityHelper.drawCustom(graphics, (bufferSourceObj) -> {
+            net.minecraft.client.renderer.MultiBufferSource bufferSource = (net.minecraft.client.renderer.MultiBufferSource) bufferSourceObj;
+            VertexConsumer buffer = bufferSource.getBuffer(RenderType.gui());
 
-            drawRegion(buffer, mat, cx, cy, INNER_RADIUS + 2, OUTER_RADIUS, start + gap, end - gap, item);
-            
-            List<? extends RadialMenuItem> subItems = item.getSubMenuItems();
-            
-            boolean isSubmenuActive = false;
-            // The submenu is visible if the mouse is hovering over the parent, hovering over a subitem, 
-            // or if a subitem is currently selected.
-            if (hoveredItem == item || selectedItem == item) {
-                isSubmenuActive = true;
-            } else {
-                for (RadialMenuItem sub : subItems) {
-                    if (hoveredItem == sub || selectedItem == sub) {
-                        isSubmenuActive = true;
-                        break;
+            for (int i = 0; i < radialItems.size(); i++) {
+                T item = radialItems.get(i);
+                
+                double start = (i * anglePerItem) - Math.toRadians(90);
+                double end = ((i + 1) * anglePerItem) - Math.toRadians(90);
+                double gap = Math.toRadians(2);
+
+                drawRegion(buffer, mat, cx, cy, INNER_RADIUS + 2, OUTER_RADIUS, start + gap, end - gap, item);
+                
+                List<? extends RadialMenuItem> subItems = item.getSubMenuItems();
+                
+                boolean isSubmenuActive = false;
+                if (hoveredItem == item || selectedItem == item) {
+                    isSubmenuActive = true;
+                } else {
+                    for (RadialMenuItem sub : subItems) {
+                        if (hoveredItem == sub || selectedItem == sub) {
+                            isSubmenuActive = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (isSubmenuActive && !subItems.isEmpty()) {
+                    double parentMidAngle = start + (anglePerItem / 2);
+                    double maxSubAngleTotal = Math.min(anglePerItem, Math.toRadians(80));
+                    double subAnglePerItem = maxSubAngleTotal / subItems.size();
+                    double subStartAngle = parentMidAngle - (maxSubAngleTotal / 2);
+                    
+                    for (int j = 0; j < subItems.size(); j++) {
+                        T subItem = (T) subItems.get(j);
+                        double subStart = subStartAngle + (j * subAnglePerItem);
+                        double subEnd = subStartAngle + ((j + 1) * subAnglePerItem);
+                        drawRegion(buffer, mat, cx, cy, SUBMENU_INNER_RADIUS, SUBMENU_OUTER_RADIUS, subStart + gap, subEnd - gap, subItem);
                     }
                 }
             }
-            
-            if (isSubmenuActive && !subItems.isEmpty()) {
-                double parentMidAngle = start + (anglePerItem / 2);
-                double maxSubAngleTotal = Math.min(anglePerItem, Math.toRadians(80));
-                double subAnglePerItem = maxSubAngleTotal / subItems.size();
-                double subStartAngle = parentMidAngle - (maxSubAngleTotal / 2);
-                
-                for (int j = 0; j < subItems.size(); j++) {
-                    T subItem = (T) subItems.get(j);
-                    double subStart = subStartAngle + (j * subAnglePerItem);
-                    double subEnd = subStartAngle + ((j + 1) * subAnglePerItem);
-                    drawRegion(buffer, mat, cx, cy, SUBMENU_INNER_RADIUS, SUBMENU_OUTER_RADIUS, subStart + gap, subEnd - gap, subItem);
-                }
-            }
-        }
+        });
 
-        graphics.bufferSource().endBatch(RenderType.gui());
         poseStack.popPose();
     }
 
@@ -392,16 +384,16 @@ public class GenericRadialMenuScreen<T extends RadialMenuItem> extends Screen {
         boolean enabled = isItemEnabled.test(item);
 
         if (!enabled) {
-            graphics.setColor(0.5f, 0.5f, 0.5f, 0.8f);
+            CompatibilityHelper.setColor(graphics, 0.5f, 0.5f, 0.5f, 0.8f);
         } else if (selected) {
             float[] rgba = highlightColor.getComponents(null);
-            graphics.setColor(rgba[0], rgba[1], rgba[2], 1.0f);
+            CompatibilityHelper.setColor(graphics, rgba[0], rgba[1], rgba[2], 1.0f);
         } else {
-            graphics.setColor(1f, 1f, 1f, 1f);
+            CompatibilityHelper.setColor(graphics, 1f, 1f, 1f, 1f);
         }
 
-        graphics.blit(item.getIconLocation(selected), x, y, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
-        graphics.setColor(1f, 1f, 1f, 1f);
+        CompatibilityHelper.blit(graphics, item.getIconLocation(selected), x, y, 0f, 0f, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+        CompatibilityHelper.setColor(graphics, 1f, 1f, 1f, 1f);
     }
 
     private void drawArc(VertexConsumer buffer, Matrix4f mat, float cx, float cy, float rIn, float rOut, double start,

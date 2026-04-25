@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.SpriteContents;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.util.FastColor;
 import net.minecraft.world.item.ItemStack;
 import com.mojang.blaze3d.platform.NativeImage;
 
@@ -76,30 +75,34 @@ public class ColorHelper {
 
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    int color = image.getPixelRGBA(x, y);
+                    int color = CompatibilityHelper.getPixelRGBA(image, x, y);
 
-                    int alpha = FastColor.ABGR32.alpha(color);
+                    int alpha = (color >> 24) & 0xFF;
                     if (alpha < 10)
                         continue;
 
-                    r += FastColor.ABGR32.red(color);
-                    g += FastColor.ABGR32.green(color);
-                    b += FastColor.ABGR32.blue(color);
+                    r += color & 0xFF;
+                    g += (color >> 8) & 0xFF;
+                    b += (color >> 16) & 0xFF;
                     count++;
                 }
             }
             if (count == 0)
                 return 0xFFFFFF;
-            return FastColor.ARGB32.color(255, (int) (r / count), (int) (g / count), (int) (b / count));
+            
+            int avgR = (int) (r / count);
+            int avgG = (int) (g / count);
+            int avgB = (int) (b / count);
+            return (255 << 24) | ((avgR & 0xFF) << 16) | ((avgG & 0xFF) << 8) | (avgB & 0xFF);
         } catch (Exception e) {
             return 0xFFFFFF;
         }
     }
 
     public static float[] colorToHSB(int color) {
-        int r = FastColor.ARGB32.red(color);
-        int g = FastColor.ARGB32.green(color);
-        int b = FastColor.ARGB32.blue(color);
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
         return java.awt.Color.RGBtoHSB(r, g, b, null);
     }
 }

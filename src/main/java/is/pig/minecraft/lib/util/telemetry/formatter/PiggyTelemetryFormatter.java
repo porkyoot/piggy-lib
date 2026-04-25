@@ -7,6 +7,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import is.pig.minecraft.lib.util.CompatibilityHelper;
 import is.pig.minecraft.lib.util.telemetry.StructuredEvent;
 import is.pig.minecraft.lib.util.telemetry.EventTranslatorRegistry;
 import is.pig.minecraft.lib.I18n;
@@ -251,7 +252,7 @@ public class PiggyTelemetryFormatter {
     private static BlockPos findFirstSolidBelow(BlockPos start, Level level) {
         BlockPos.MutableBlockPos mutable = start.mutable();
         mutable.move(net.minecraft.core.Direction.DOWN);
-        while (mutable.getY() >= level.getMinBuildHeight()) {
+        while (mutable.getY() >= CompatibilityHelper.getMinBuildHeight(level)) {
             if (level.getBlockState(mutable).blocksMotion()) {
                 return mutable.immutable();
             }

@@ -31,15 +31,15 @@ public class PiggyMessenger {
     }
 
     public static void sendSuccess(Player player, String translationKey, Object... args) {
-        player.sendSystemMessage(getPrefix().append(Component.translatable(translationKey, args).withStyle(SUCCESS_STYLE)));
+        CompatibilityHelper.sendSystemMessage(player, getPrefix().append(Component.translatable(translationKey, args).withStyle(SUCCESS_STYLE)));
     }
 
     public static void sendError(Player player, String translationKey, Object... args) {
-        player.sendSystemMessage(getPrefix().append(Component.translatable(translationKey, args).withStyle(ERROR_STYLE)));
+        CompatibilityHelper.sendSystemMessage(player, getPrefix().append(Component.translatable(translationKey, args).withStyle(ERROR_STYLE)));
     }
 
     public static void sendInfo(Player player, String translationKey, Object... args) {
-        player.sendSystemMessage(getPrefix().append(Component.translatable(translationKey, args).withStyle(INFO_STYLE)));
+        CompatibilityHelper.sendSystemMessage(player, getPrefix().append(Component.translatable(translationKey, args).withStyle(INFO_STYLE)));
     }
 
     /**
@@ -89,6 +89,6 @@ public class PiggyMessenger {
                 .append(Component.literal(" ").withStyle(WHISPER_STYLE))
                 .append(content.copy().withStyle(WHISPER_STYLE));
 
-        op.sendSystemMessage(message);
+        CompatibilityHelper.sendSystemMessage(op, message);
     }
 }

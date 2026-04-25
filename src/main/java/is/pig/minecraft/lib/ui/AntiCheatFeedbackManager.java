@@ -3,6 +3,7 @@ package is.pig.minecraft.lib.ui;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import is.pig.minecraft.lib.util.CompatibilityHelper;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -80,7 +81,7 @@ public class AntiCheatFeedbackManager {
                             .withStyle(ChatFormatting.GRAY));
         }
 
-        client.player.sendSystemMessage(message);
+        CompatibilityHelper.sendSystemMessage(client, message);
     }
 
     /**

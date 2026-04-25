@@ -2,6 +2,7 @@ package is.pig.minecraft.lib.util.telemetry;
 
 import is.pig.minecraft.lib.util.PiggyLog;
 import net.minecraft.client.Minecraft;
+import is.pig.minecraft.lib.util.CompatibilityHelper;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -96,6 +97,6 @@ public class FileOutputEngine {
                         net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT, 
                         Component.literal(logPath)))));
 
-        client.player.sendSystemMessage(msg);
+        CompatibilityHelper.sendSystemMessage(client, msg);
     }
 }

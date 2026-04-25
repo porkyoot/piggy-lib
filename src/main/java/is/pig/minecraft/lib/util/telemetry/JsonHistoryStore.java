@@ -103,6 +103,11 @@ public class JsonHistoryStore {
         return Collections.unmodifiableList(history);
     }
 
+    public synchronized void clear() {
+        history.clear();
+        save();
+    }
+
     /**
      * A record representing a single horizontal entry in the JSON history.
      */
