@@ -4,13 +4,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.component.DataComponentMap;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Core mathematical engine for inventory sorting.
  * Operates on InventorySnapshots and generates abstract Move sequences.
  */
 public class InventoryOptimizer {
-
     // NOUVELLE SIGNATURE : Prend le Current ET le Target pour analyser la capacité réelle
     private java.util.function.ToIntFunction<ItemStack> getCapacityProvider(InventorySnapshot currentSnapshot, InventorySnapshot targetSnapshot) {
         if (targetSnapshot == null) return ItemStack::getMaxStackSize;
@@ -67,8 +68,12 @@ public class InventoryOptimizer {
         }
 
         for (Map.Entry<ItemKey, List<Integer>> entry : itemLocations.entrySet()) {
+        }
+
+        for (Map.Entry<ItemKey, List<Integer>> entry : itemLocations.entrySet()) {
             List<Integer> indices = entry.getValue();
             if (indices.size() < 2) continue;
+
 
             // Tri intelligent : 
             // 1. Stacks Flottants (Sources) au début. Stacks "Home" (Destinations) à la fin.
@@ -109,10 +114,11 @@ public class InventoryOptimizer {
 
                     int max = capacityProvider.applyAsInt(target);
                     int space = max - target.getCount();
+                    int toMove = Math.min(space, source.getCount());
+
+
                     if (space <= 0) continue; 
 
-                    int toMove = Math.min(space, source.getCount());
-                    
                     List<Move> transferSteps = generateTransfer(sourceIdx, targetIdx, toMove, virtual, capacityProvider);
                     if (!transferSteps.isEmpty()) {
                         moves.addAll(transferSteps);
@@ -121,6 +127,7 @@ public class InventoryOptimizer {
                         // Mettre à jour l'état local pour l'itération suivante
                         slotMap.put(sourceIdx, getStack(virtual, sourceIdx));
                         slotMap.put(targetIdx, getStack(virtual, targetIdx));
+
                     }
                 }
             }
@@ -142,8 +149,14 @@ public class InventoryOptimizer {
         Set<Long> moveFlows = new HashSet<>(); // Tracks (src << 32) | dest to prevent ping-pong
         List<Integer> allIndices = targetSnapshot.slots().stream().map(InventorySnapshot.SlotState::index).toList();
 
+        for (var entry : targetMap.entrySet()) {
+        }
+
         for (int i : allIndices) {
-            if (visited.contains(i)) continue;
+            boolean isVisited = visited.contains(i);
+            ItemStack curAtStart = getStack(virtual, i);
+
+            if (isVisited) continue;
             
             // Simulation Hygiene: If a previous cycle was aborted and couldn't dump,
             // we must stop planning for this burst to prevent "Dirty Hand" crashes.
@@ -157,19 +170,29 @@ public class InventoryOptimizer {
                 continue;
             }
 
+            // If the item type matches but counts differ, we are just reordering stacks of identical items by size.
+            // This physically requires an empty slot buffer to swap.
+            // If the chest is 100% full, we CANNOT swap them. Accept the slot as "sorted enough" to prevent infinite loops.
+            if (isItemMatch(cur, tar) && findEmptySlot(virtual, allIndices) == -1) {
+                visited.add(i);
+                continue;
+            }
+
             // Mega-Stack Drain Mode Selection
             if (cur.getCount() > 64 || tar.getCount() > 64) {
                // Where does the item currently in 'i' belong?
-               int dest = findDestination(cur, targetMap, visited, allIndices);
+               int dest = findDestination(cur, targetMap, visited, allIndices, virtual);
                if (dest != -1) {
-                   // Congestion Check: If the target slot is currently clogged by a different mega-stack, wait.
                    ItemStack destStack = getStack(virtual, dest);
-                   if (destStack.getCount() > 64 && !isItemMatch(cur, destStack)) {
+                   // Congestion Check: Wait if the target slot is occupied by ANY different item to prevent cursor swaps during a drain.
+                   if (!destStack.isEmpty() && !isItemMatch(cur, destStack)) {
                        continue; 
                    }
 
                    // Check for bidirectional conflict (Don't move B -> A if we already planned A -> B)
-                   if (moveFlows.contains(((long)dest << 32) | i)) continue;
+                   if (moveFlows.contains(((long)dest << 32) | i)) {
+                       continue;
+                   }
                    
                    // Plan a Drain from i to dest
                    int amount = Math.min(cur.getCount(), capacityProvider.applyAsInt(cur) - getStack(virtual, dest).getCount());
@@ -178,6 +201,7 @@ public class InventoryOptimizer {
                        moves.addAll(drain);
                        virtual = virtual.applyMoves(drain, capacityProvider);
                        moveFlows.add(((long)i << 32) | dest);
+                   } else {
                    }
                    
                    // Only mark as visited if it actually matches target now
@@ -189,7 +213,7 @@ public class InventoryOptimizer {
 
             // Standard Disjoint Cycle Decomposition for non-mega stacks
             // Congestion Check Prep: Where does this item actually need to go NEXT?
-            int potentialNext = findDestination(cur, targetMap, visited, allIndices);
+            int potentialNext = findDestination(cur, targetMap, visited, allIndices, virtual);
             if (potentialNext != -1) {
                 ItemStack targetOccupant = getStack(virtual, potentialNext);
                 // If its immediate target is clogged by a different mega-stack, skip starting this cycle.
@@ -207,11 +231,13 @@ public class InventoryOptimizer {
             int safety = 0;
             while (!virtual.cursor().isEmpty() && safety++ < 1000) {
                 // Where does the cursor item belong?
-                int nextSlot = findDestination(virtual.cursor(), targetMap, visited, allIndices);
+                int nextSlot = findDestination(virtual.cursor(), targetMap, visited, allIndices, virtual);
                 if (nextSlot == -1) {
                     // Nowhere in the sorted set? Find an empty slot to dump
                     nextSlot = findEmptySlot(virtual, allIndices);
-                    if (nextSlot == -1) break; // Trapped
+                    if (nextSlot == -1) {
+                        break; // Trapped
+                    }
                 }
 
                 // Safety Check: If the target destination is currently occupied by a mega-stack (> 64)
@@ -222,6 +248,7 @@ public class InventoryOptimizer {
                         List<Move> dump = List.of(new Move(dumpSlot, Move.MoveType.DEPOSIT_ALL));
                         moves.addAll(dump);
                         virtual = virtual.applyMoves(dump, capacityProvider);
+                    } else {
                     }
                     break; // Abort cycle
                 }
@@ -260,6 +287,7 @@ public class InventoryOptimizer {
                 List<Move> dump = generateSwap(dumpSlot, virtual);
                 moves.addAll(dump);
                 virtual = virtual.applyMoves(dump, capacityProvider);
+            } else {
             }
         }
 
@@ -290,17 +318,24 @@ public class InventoryOptimizer {
         return List.of(new Move(slot, Move.MoveType.SWAP));
     }
 
-    private int findDestination(ItemStack cursor, Map<Integer, ItemStack> targetMap, Set<Integer> visited, List<Integer> allIndices) {
+    private int findDestination(ItemStack cursor, Map<Integer, ItemStack> targetMap, Set<Integer> visited, List<Integer> allIndices, InventorySnapshot virtual) {
         for (int i : allIndices) {
             // Si le slot a déjà parfaitement atteint sa cible finale (quantité incluse), on l'ignore.
-            if (visited.contains(i)) continue;
+            if (visited.contains(i)) {
+                continue;
+            }
             
             ItemStack targetStack = targetMap.getOrDefault(i, ItemStack.EMPTY);
             
             // On utilise isItemMatch et NON isSame.
             // Le slot veut ce type d'objet, peu importe combien on en a actuellement dans la main.
             if (isItemMatch(cursor, targetStack)) {
+                ItemStack curSlotStack = getStack(virtual, i);
+                if (!curSlotStack.isEmpty() && isItemMatch(cursor, curSlotStack)) {
+                    continue;
+                }
                 return i;
+            } else {
             }
         }
         return -1;
@@ -309,7 +344,10 @@ public class InventoryOptimizer {
     private int findEmptySlot(InventorySnapshot state, List<Integer> allIndices) {
         Map<Integer, ItemStack> currentMap = toMap(state.slots());
         for (int i : allIndices) {
-            if (currentMap.getOrDefault(i, ItemStack.EMPTY).isEmpty()) return i;
+            ItemStack curStack = currentMap.getOrDefault(i, ItemStack.EMPTY);
+            if (curStack.isEmpty()) {
+                return i;
+            }
         }
         return -1;
     }
