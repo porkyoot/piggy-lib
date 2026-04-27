@@ -8,6 +8,8 @@ import net.minecraft.world.level.Level;
 import com.mojang.blaze3d.platform.NativeImage;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.LightTexture;
 
 public class CompatibilityHelper {
 
@@ -208,6 +210,70 @@ public class CompatibilityHelper {
             com.mojang.blaze3d.systems.RenderSystem.setShaderColor(r, g, b, a);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private static java.lang.invoke.MethodHandle setUv1Handle;
+    private static java.lang.invoke.MethodHandle setUv2Handle;
+    private static java.lang.invoke.MethodHandle setNormalHandle;
+
+    static {
+        java.lang.invoke.MethodHandles.Lookup lookup = java.lang.invoke.MethodHandles.lookup();
+        try {
+            Class<?> vcClass = Class.forName("com.mojang.blaze3d.vertex.VertexConsumer");
+            for (Method m : vcClass.getMethods()) {
+                if (m.getName().equals("setUv1") || m.getName().equals("setOverlay") || m.getName().equals("overlayCoords") || m.getName().equals("overlay")) {
+                    if (m.getParameterCount() == 1 && m.getParameterTypes()[0] == int.class) {
+                        setUv1Handle = lookup.unreflect(m);
+                    } else if (m.getParameterCount() == 2 && m.getParameterTypes()[0] == int.class && m.getParameterTypes()[1] == int.class) {
+                        setUv1Handle = lookup.unreflect(m);
+                    }
+                }
+                if (m.getName().equals("setUv2") || m.getName().equals("setLight") || m.getName().equals("uv2") || m.getName().equals("light")) {
+                    if (m.getParameterCount() == 1 && m.getParameterTypes()[0] == int.class) {
+                        setUv2Handle = lookup.unreflect(m);
+                    } else if (m.getParameterCount() == 2 && m.getParameterTypes()[0] == int.class && m.getParameterTypes()[1] == int.class) {
+                        setUv2Handle = lookup.unreflect(m);
+                    }
+                }
+                if (m.getName().equals("setNormal") || m.getName().equals("normal")) {
+                    if (m.getParameterCount() == 3 && m.getParameterTypes()[0] == float.class) {
+                        setNormalHandle = lookup.unreflect(m);
+                    } else if (m.getParameterCount() == 4 && m.getParameterTypes()[0] == com.mojang.blaze3d.vertex.PoseStack.Pose.class) {
+                        setNormalHandle = lookup.unreflect(m);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void applyVertexAttributes(com.mojang.blaze3d.vertex.VertexConsumer builder, com.mojang.blaze3d.vertex.PoseStack.Pose pose, float nx, float ny, float nz) {
+        try {
+            if (setUv1Handle != null) {
+                if (setUv1Handle.type().parameterCount() == 2) {
+                    setUv1Handle.invoke(builder, OverlayTexture.NO_OVERLAY); 
+                } else if (setUv1Handle.type().parameterCount() == 3) {
+                    setUv1Handle.invoke(builder, 10, 10); 
+                }
+            }
+            if (setUv2Handle != null) {
+                if (setUv2Handle.type().parameterCount() == 2) {
+                    setUv2Handle.invoke(builder, LightTexture.pack(15, 15)); 
+                } else if (setUv2Handle.type().parameterCount() == 3) {
+                    setUv2Handle.invoke(builder, 15, 15);
+                }
+            }
+            if (setNormalHandle != null) {
+                if (setNormalHandle.type().parameterCount() == 4) {
+                    setNormalHandle.invoke(builder, nx, ny, nz);
+                } else if (setNormalHandle.type().parameterCount() == 5) {
+                    setNormalHandle.invoke(builder, pose, nx, ny, nz);
+                }
+            }
+        } catch (Throwable t) {
+            // Ignore
         }
     }
 }
