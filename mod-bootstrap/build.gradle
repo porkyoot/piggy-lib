@@ -1,0 +1,22 @@
+plugins {
+    id 'com.gradleup.shadow' version '9.4.1'
+}
+
+dependencies {
+    implementation project(':mod-api-spi')
+    implementation project(':mod-common')
+    
+    runtimeOnly files(project(':mod-adapter-legacy').tasks.jar.archiveFile)
+    runtimeOnly files(project(':mod-adapter-modern').tasks.jar.archiveFile)
+    
+    compileOnly "net.fabricmc:fabric-loader:0.18.1"
+    compileOnly "net.fabricmc:sponge-mixin:0.17.3+mixin.0.8.7"
+}
+
+shadowJar {
+    mergeServiceFiles()
+    archiveClassifier.set('')
+    
+    dependsOn ':mod-adapter-legacy:jar'
+    dependsOn ':mod-adapter-modern:jar'
+}
