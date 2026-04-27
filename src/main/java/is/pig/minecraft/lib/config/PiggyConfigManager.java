@@ -39,6 +39,28 @@ public abstract class PiggyConfigManager<T> {
         
         GsonBuilder builder = customBuilder != null ? customBuilder : new GsonBuilder();
         builder.setPrettyPrinting()
+                .registerTypeAdapter(File.class, new TypeAdapter<File>() {
+                    @Override
+                    public void write(JsonWriter out, File value) throws IOException {
+                        out.value(value.getPath());
+                    }
+
+                    @Override
+                    public File read(JsonReader in) throws IOException {
+                        return new File(in.nextString());
+                    }
+                }.nullSafe())
+                .registerTypeAdapter(java.nio.file.Path.class, new TypeAdapter<java.nio.file.Path>() {
+                    @Override
+                    public void write(JsonWriter out, java.nio.file.Path value) throws IOException {
+                        out.value(value.toString());
+                    }
+
+                    @Override
+                    public java.nio.file.Path read(JsonReader in) throws IOException {
+                        return java.nio.file.Path.of(in.nextString());
+                    }
+                }.nullSafe())
                 .registerTypeAdapter(Color.class, new ColorTypeAdapter())
                 .registerTypeHierarchyAdapter(BiConsumer.class, new TypeAdapter<BiConsumer<?, ?>>() {
                     @Override
@@ -55,7 +77,7 @@ public abstract class PiggyConfigManager<T> {
                 .setExclusionStrategies(new com.google.gson.ExclusionStrategy() {
                     @Override
                     public boolean shouldSkipField(com.google.gson.FieldAttributes f) {
-                        return f.getName().equals("syncListeners");
+                        return f.getName().equals("syncListeners") || f.getDeclaringClass() == PiggyConfigManager.class;
                     }
 
                     @Override
