@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.util.telemetry;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 import org.slf4j.event.Level;
@@ -129,7 +130,7 @@ public class MetaActionSession {
      * Records an enriched structured event into the session buffer.
      * @param view the enriched event view from the dispatcher
      */
-    public synchronized void logEnrichedEvent(StructuredEventDispatcher.EnrichedEventView view) {
+    public synchronized void logEnrichedEvent(is.pig.minecraft.api.EnrichedEventView view) {
         StructuredEvent event = view.parent();
         String technical = event.getEventKey() + " " + view.enrichedData();
         String narrative = is.pig.minecraft.lib.util.telemetry.formatter.PiggyTelemetryFormatter.formatNarrative(event);

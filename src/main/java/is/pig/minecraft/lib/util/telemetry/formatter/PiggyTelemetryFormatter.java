@@ -1,13 +1,14 @@
 package is.pig.minecraft.lib.util.telemetry.formatter;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
+import is.pig.minecraft.api.FallPredictionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
-import is.pig.minecraft.lib.util.telemetry.StructuredEvent;
+import is.pig.minecraft.api.StructuredEvent;
 import is.pig.minecraft.lib.util.telemetry.EventTranslatorRegistry;
 import is.pig.minecraft.lib.I18n;
 import java.util.function.BiFunction;
@@ -192,7 +193,7 @@ public class PiggyTelemetryFormatter {
         sb.append("ImpactPos:").append(FormatterUtils.formatBlockPos(prediction.landingPos())).append("|");
         
         if (level != null) {
-            BlockPos solidBelow = findFirstSolidBelow(prediction.landingPos(), level);
+            BlockPos solidBelow = findFirstSolidBelow(new BlockPos(prediction.landingPos().x(), prediction.landingPos().y(), prediction.landingPos().z()), level);
             if (solidBelow != null) {
                 sb.append("SolidBelow:").append(formatBlock(solidBelow, level.getBlockState(solidBelow), level));
             } else {

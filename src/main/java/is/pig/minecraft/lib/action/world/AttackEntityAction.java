@@ -1,42 +1,40 @@
 package is.pig.minecraft.lib.action.world;
 
-import is.pig.minecraft.lib.action.AbstractAction;
-import is.pig.minecraft.lib.action.ActionPriority;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.Entity;
-
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+/**
+ * Platform-agnostic action to attack an entity.
+ * ZERO net.minecraft imports.
+ */
 public class AttackEntityAction extends AbstractAction {
-    private final Supplier<Entity> entityLocator;
+    private final Supplier<Object> entityLocator;
 
-    public AttackEntityAction(Supplier<Entity> entityLocator, String sourceMod, ActionPriority priority) {
+    public AttackEntityAction(Supplier<Object> entityLocator, String sourceMod, ActionPriority priority) {
         super(sourceMod, priority);
         this.entityLocator = entityLocator;
     }
 
-    public AttackEntityAction(Entity target) {
+    public AttackEntityAction(Object target) {
         super("piggy-lib", ActionPriority.NORMAL);
         this.entityLocator = () -> target;
     }
 
-
-
     @Override
-    protected void onExecute(Minecraft client) {
-        Entity target = entityLocator.get();
-        if (target != null && client.player != null && client.gameMode != null) {
-            client.gameMode.attack(client.player, target);
-            client.player.swing(InteractionHand.MAIN_HAND);
+    protected void onExecute(Object client) {
+        Object target = entityLocator.get();
+        if (target != null) {
+            PiggyServiceRegistry.getWorldInteractionAdapter().attackEntity(client, target);
         }
     }
 
     @Override
-    protected Optional<Boolean> verify(Minecraft client) {
-        Entity target = entityLocator.get();
-        return (target == null || !target.isAlive()) ? Optional.of(true) : Optional.empty();
+    protected Optional<Boolean> verify(Object client) {
+        Object target = entityLocator.get();
+        boolean dead = target == null || !PiggyServiceRegistry.getWorldStateAdapter().isAlive(target);
+        return dead ? Optional.of(true) : Optional.empty();
     }
 
     @Override

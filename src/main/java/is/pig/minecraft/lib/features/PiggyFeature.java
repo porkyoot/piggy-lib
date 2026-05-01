@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.features;
+import is.pig.minecraft.api.*;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.ResourceLocation;
@@ -7,7 +8,7 @@ import java.util.Optional;
 /**
  * Standardized contract for all Piggy Mod features.
  */
-public interface IPiggyFeature {
+public interface PiggyFeature {
     String getName();
     String getDescription();
     

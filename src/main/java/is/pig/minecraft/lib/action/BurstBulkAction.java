@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.action;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.lib.util.PiggyLog;
 import is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager;
@@ -14,13 +15,13 @@ import java.util.function.Supplier;
  * A specialized bulk action that streams logic in bursts using AIMD.
  * This generalizes the "Wait for Sync" loop used in robust sorting.
  */
-public class BurstBulkAction implements IAction {
+public class BurstBulkAction implements Action {
     private static final PiggyLog LOGGER = new PiggyLog("piggy-lib", "ActionQueue");
 
     private final String sourceMod;
     private final ActionPriority priority;
     private final String name;
-    private final Supplier<List<IAction>> planProvider;
+    private final Supplier<List<Action>> planProvider;
     private final BooleanSupplier verifyCondition;
     private final IntSupplier latencySupplier;
     private final int timeoutTicks;
@@ -29,7 +30,7 @@ public class BurstBulkAction implements IAction {
     private final BurstController burstController = new BurstController();
     private boolean initiated = false;
     
-    private List<IAction> currentBurst = null;
+    private List<Action> currentBurst = null;
     private int burstIndex = 0;
     private int waitTicks = 0;
     private int consecutiveDesyncs = 0;
@@ -43,7 +44,7 @@ public class BurstBulkAction implements IAction {
     }
 
     public BurstBulkAction(String sourceMod, ActionPriority priority, String name, 
-                           Supplier<List<IAction>> planProvider, 
+                           Supplier<List<Action>> planProvider, 
                            BooleanSupplier verifyCondition, 
                            IntSupplier latencySupplier,
                            int timeoutTicks,
@@ -59,12 +60,13 @@ public class BurstBulkAction implements IAction {
     }
 
     @Override
-    public Optional<Boolean> execute(Minecraft client) {
+    public Optional<Boolean> execute(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         initiated = true;
 
         switch (state) {
             case PLANNING -> {
-                List<IAction> fullPlan = planProvider.get();
+                List<Action> fullPlan = planProvider.get();
                 if (fullPlan == null || fullPlan.isEmpty()) {
                     if (callback != null) callback.onResult(true);
                     return Optional.of(true);
@@ -87,7 +89,7 @@ public class BurstBulkAction implements IAction {
 
                 // Fire the entire burst in this tick
                 while (burstIndex < currentBurst.size()) {
-                    IAction sub = currentBurst.get(burstIndex++);
+                    Action sub = currentBurst.get(burstIndex++);
                     sub.execute(client);
                 }
                 
@@ -148,7 +150,7 @@ public class BurstBulkAction implements IAction {
     public Optional<ActionCallback> getCallback() { return Optional.ofNullable(callback); }
 
     @Override
-    public String getTelemetry(net.minecraft.client.Minecraft client) {
+    public String getTelemetry(Object clientObj) {
         return String.format("Window=%d, State=%s, Desyncs=%d/%d", 
             burstController.getCurrentWindow(), 
             state, 

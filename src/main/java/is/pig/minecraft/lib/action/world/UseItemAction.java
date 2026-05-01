@@ -1,11 +1,14 @@
 package is.pig.minecraft.lib.action.world;
 
-import is.pig.minecraft.lib.action.AbstractAction;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionHand;
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
+/**
+ * Platform-agnostic action to use an item.
+ * ZERO net.minecraft imports.
+ */
 public class UseItemAction extends AbstractAction {
     private final InteractionHand hand;
     private final BooleanSupplier verifyCondition;
@@ -21,15 +24,12 @@ public class UseItemAction extends AbstractAction {
     }
 
     @Override
-    protected void onExecute(Minecraft client) {
-        if (client.player != null && client.gameMode != null) {
-            client.gameMode.useItem(client.player, this.hand);
-            client.player.swing(this.hand);
-        }
+    protected void onExecute(Object client) {
+        PiggyServiceRegistry.getWorldInteractionAdapter().useItem(client, this.hand);
     }
 
     @Override
-    protected Optional<Boolean> verify(Minecraft client) {
+    protected Optional<Boolean> verify(Object client) {
         return verifyCondition.getAsBoolean() ? Optional.of(true) : Optional.empty();
     }
 

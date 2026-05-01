@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.network;
+import is.pig.minecraft.api.*;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;

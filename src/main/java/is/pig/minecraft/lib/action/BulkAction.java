@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.action;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.lib.util.PiggyLog;
 import net.minecraft.client.Minecraft;
@@ -7,12 +8,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
-public class BulkAction implements IAction {
+public class BulkAction implements Action {
     private static final PiggyLog LOGGER = new PiggyLog("piggy-lib", "ActionQueue");
 
     private final String sourceMod;
     private final ActionPriority priority;
-    private final List<IAction> subActions;
+    private final List<Action> subActions;
     private final BooleanSupplier verifyCondition;
     private final int timeoutTicks;
     private final String name;
@@ -25,7 +26,7 @@ public class BulkAction implements IAction {
     private int waitTicks = 0;
     private boolean ignoreGlobalCps = false;
 
-    public BulkAction(String sourceMod, ActionPriority priority, List<IAction> subActions, BooleanSupplier verifyCondition, int timeoutTicks, String name, BulkActionCallback callback) {
+    public BulkAction(String sourceMod, ActionPriority priority, List<Action> subActions, BooleanSupplier verifyCondition, int timeoutTicks, String name, BulkActionCallback callback) {
         this.sourceMod = sourceMod;
         this.priority = priority;
         this.subActions = subActions;
@@ -35,26 +36,26 @@ public class BulkAction implements IAction {
         this.callback = callback;
     }
 
-    public BulkAction(String sourceMod, ActionPriority priority, List<IAction> subActions, BooleanSupplier verifyCondition, int timeoutTicks, String name) {
+    public BulkAction(String sourceMod, ActionPriority priority, List<Action> subActions, BooleanSupplier verifyCondition, int timeoutTicks, String name) {
         this(sourceMod, priority, subActions, verifyCondition, timeoutTicks, name, null);
     }
 
-    public BulkAction(String sourceMod, String name, List<IAction> subActions) {
+    public BulkAction(String sourceMod, String name, List<Action> subActions) {
         this(sourceMod, ActionPriority.NORMAL, subActions, () -> true, 40, name, null);
     }
     
-    public BulkAction(String sourceMod, String name, List<IAction> subActions, BulkActionCallback callback) {
+    public BulkAction(String sourceMod, String name, List<Action> subActions, BulkActionCallback callback) {
         this(sourceMod, ActionPriority.NORMAL, subActions, () -> true, 40, name, callback);
     }
 
-    public BulkAction(String sourceMod, String name, List<IAction> subActions, BooleanSupplier verifyCondition) {
+    public BulkAction(String sourceMod, String name, List<Action> subActions, BooleanSupplier verifyCondition) {
         this(sourceMod, ActionPriority.NORMAL, subActions, verifyCondition, 40, name, null);
     }
 
     private void finalizeAction(Minecraft client, boolean isTimeout) {
         if (callback != null) {
-            java.util.List<IAction> failed = new java.util.ArrayList<>();
-            for (IAction action : subActions) {
+            java.util.List<Action> failed = new java.util.ArrayList<>();
+            for (Action action : subActions) {
                 if (!action.isVerified(client)) {
                     failed.add(action);
                 }
@@ -64,12 +65,13 @@ public class BulkAction implements IAction {
     }
 
     @Override
-    public Optional<Boolean> execute(Minecraft client) {
+    public Optional<Boolean> execute(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         initiated = true;
 
         if (!allExecuted) {
             while (currentIndex < subActions.size()) {
-                IAction currentSub = subActions.get(currentIndex);
+                Action currentSub = subActions.get(currentIndex);
 
                 boolean shouldThrottle = currentSub.isClick() && !this.ignoreGlobalCps() && !currentSub.ignoreGlobalCps() && this.getPriority() != ActionPriority.HIGHEST;
                 int cps = is.pig.minecraft.lib.config.PiggyClientConfig.getInstance().globalActionCps;
@@ -157,7 +159,7 @@ public class BulkAction implements IAction {
     }
 
     @Override
-    public String getTelemetry(net.minecraft.client.Minecraft client) {
+    public String getTelemetry(Object clientObj) {
         return String.format("Progress=%d/%d, WaitTicks=%d, Timeout=%d", currentIndex, subActions.size(), waitTicks, timeoutTicks);
     }
 }

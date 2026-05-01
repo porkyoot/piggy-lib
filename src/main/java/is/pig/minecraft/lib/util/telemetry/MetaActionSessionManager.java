@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.util.telemetry;
+import is.pig.minecraft.api.*;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;

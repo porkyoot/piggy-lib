@@ -3,6 +3,7 @@ base {
 }
 
 dependencies {
+	implementation project(':piggy-api')
 	modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
 
     testImplementation platform("org.junit:junit-bom:5.10.0")

@@ -1,7 +1,8 @@
 package is.pig.minecraft.lib.action.player;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.action.AbstractAction;
-import is.pig.minecraft.lib.action.ActionPriority;
+import is.pig.minecraft.api.AbstractAction;
+import is.pig.minecraft.api.ActionPriority;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import java.util.Optional;
@@ -23,7 +24,8 @@ public class SetRotationAction extends AbstractAction {
     }
 
     @Override
-    public Optional<Boolean> execute(Minecraft client) {
+    public Optional<Boolean> execute(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         if (this.ticksToInterpolate <= 0) {
             Player player = client.player;
             if (player != null) {
@@ -36,12 +38,14 @@ public class SetRotationAction extends AbstractAction {
     }
 
     @Override
-    protected void onExecute(Minecraft client) {
+    protected void onExecute(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         // Initialization handled lazily/continuously in verify()
     }
 
     @Override
-    protected Optional<Boolean> verify(Minecraft client) {
+    protected Optional<Boolean> verify(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         Player player = client.player;
         if (player == null) return Optional.of(true);
 

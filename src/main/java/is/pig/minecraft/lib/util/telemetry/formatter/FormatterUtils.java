@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.util.telemetry.formatter;
+import is.pig.minecraft.api.*;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -28,12 +29,23 @@ public class FormatterUtils {
             formatDouble(vec.x), formatDouble(vec.y), formatDouble(vec.z));
     }
 
+    public static String formatVec3(is.pig.minecraft.api.Vec3 vec) {
+        if (vec == null) return "null";
+        return String.format(Locale.ROOT, "(%s, %s, %s)", 
+            formatDouble(vec.x()), formatDouble(vec.y()), formatDouble(vec.z()));
+    }
+
     /**
      * Formats a BlockPos as (X, Y, Z).
      */
     public static String formatBlockPos(BlockPos pos) {
         if (pos == null) return "null";
         return String.format(Locale.ROOT, "(%d, %d, %d)", pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    public static String formatBlockPos(is.pig.minecraft.api.BlockPos pos) {
+        if (pos == null) return "null";
+        return String.format(Locale.ROOT, "(%d, %d, %d)", pos.x(), pos.y(), pos.z());
     }
 
     /**

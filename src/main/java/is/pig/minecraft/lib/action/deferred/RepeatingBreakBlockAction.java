@@ -1,12 +1,13 @@
 package is.pig.minecraft.lib.action.deferred;
 
-import is.pig.minecraft.lib.action.ActionPriority;
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
 import is.pig.minecraft.lib.action.world.BreakBlockAction;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
 
-public class RepeatingBreakBlockAction implements IDeferredAction {
+public class RepeatingBreakBlockAction implements DeferredAction {
     private static final is.pig.minecraft.lib.util.PiggyLog LOGGER = new is.pig.minecraft.lib.util.PiggyLog("piggy-lib", "Deferred");
     private final BlockPos targetPos;
     private final int maxTicks;
@@ -26,7 +27,7 @@ public class RepeatingBreakBlockAction implements IDeferredAction {
 
     @Override
     public boolean tick(Minecraft client) {
-        if (client.player == null || client.level == null) return true; // Abort natively on logout
+        if (client.player == null || client.level == null) return true;
         
         ageTicks++;
         if (ageTicks > maxTicks) {
@@ -34,33 +35,34 @@ public class RepeatingBreakBlockAction implements IDeferredAction {
             return true; 
         }
 
-        // Success check!
-        if (client.level.isEmptyBlock(targetPos)) {
+        WorldStateAdapter adapter = PiggyServiceRegistry.getWorldStateAdapter();
+        String worldId = client.level.dimension().location().toString();
+
+        if (adapter.isEmpty(worldId, targetPos)) {
             LOGGER.debug("Target broken successfully. De-registering payload: {}", targetPos);
             return true;
         }
 
-        // Context Trigger Validation
-        if (!client.player.onGround()) return false;
+        if (!adapter.isPlayerOnGround(client.player)) return false;
         
-        // Ensure player is not actively standing on the target block organically (e.g. at the bottom apex of a slime bounce)
-        net.minecraft.world.phys.AABB extendedBlockBox = new net.minecraft.world.phys.AABB(targetPos).expandTowards(0, 0.1, 0);
-        if (client.player.getBoundingBox().intersects(extendedBlockBox)) {
-            return false; // Still standing on or intersecting the MLG block!
+        if (adapter.isEntityIntersecting(client.player, targetPos)) {
+            return false;
         }
         
-        double distSq = client.player.getEyePosition().distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(targetPos));
-        if (distSq >= 16.0) return false;
+        Vec3 eyePos = adapter.getPlayerEyePosition(client.player);
+        Vec3 blockCenter = new Vec3(targetPos.x() + 0.5, targetPos.y() + 0.5, targetPos.z() + 0.5);
+        
+        if (eyePos.distanceToSqr(blockCenter) >= 16.0) return false;
 
         if (!PiggyActionQueue.getInstance().hasActions("piggy-build")) {
             LOGGER.debug("Deferred BreakBlock condition met. Injecting action.");
             if (preBreakTask != null) {
                 preBreakTask.run();
             }
-            // Queue is free, context is perfect: retry the manual payload!
             PiggyActionQueue.getInstance().enqueue(new BreakBlockAction(targetPos, "piggy-build", ActionPriority.LOW));
         }
 
-        return false; // Remain alive waiting for block to dissolve
+        return false;
     }
 }
+

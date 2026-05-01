@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.features;
+import is.pig.minecraft.api.*;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
  * Central registry for all cheat features across Piggy mods.
  * Mods should register their features during initialization.
  */
+@Deprecated(forRemoval = true)
 public class CheatFeatureRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger("piggy-lib");
     private static final Map<String, CheatFeature> FEATURES = new LinkedHashMap<>();

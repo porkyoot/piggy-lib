@@ -1,12 +1,13 @@
 package is.pig.minecraft.lib.action.network;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.action.ActionPriority;
-import is.pig.minecraft.lib.action.IAction;
+import is.pig.minecraft.api.ActionPriority;
+import is.pig.minecraft.api.Action;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.Packet;
 import java.util.Optional;
 
-public class SendPacketAction implements IAction {
+public class SendPacketAction implements Action {
     private final Packet<?> packet;
     private final String sourceMod;
     private final ActionPriority priority;
@@ -18,7 +19,8 @@ public class SendPacketAction implements IAction {
     }
 
     @Override
-    public Optional<Boolean> execute(Minecraft client) {
+    public Optional<Boolean> execute(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         if (client.getConnection() != null) {
             client.getConnection().send(packet);
         }

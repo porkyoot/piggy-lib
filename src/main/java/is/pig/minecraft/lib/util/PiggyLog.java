@@ -1,8 +1,9 @@
 package is.pig.minecraft.lib.util;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.lib.I18n;
 import is.pig.minecraft.lib.util.telemetry.EventTranslatorRegistry;
-import is.pig.minecraft.lib.util.telemetry.StructuredEvent;
+import is.pig.minecraft.api.StructuredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

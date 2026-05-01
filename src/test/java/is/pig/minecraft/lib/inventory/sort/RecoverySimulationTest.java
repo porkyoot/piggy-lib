@@ -1,4 +1,4 @@
-package is.pig.minecraft.lib.inventory.sort;
+package is.pig.minecraft.inventory.sorting;
 
 import is.pig.minecraft.lib.action.BurstController;
 

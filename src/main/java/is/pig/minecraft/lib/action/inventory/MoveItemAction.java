@@ -1,11 +1,13 @@
 package is.pig.minecraft.lib.action.inventory;
 
+import is.pig.minecraft.api.*;
 import is.pig.minecraft.lib.action.BulkAction;
-import is.pig.minecraft.lib.action.ActionPriority;
-import net.minecraft.world.inventory.ClickType;
-
 import java.util.Arrays;
 
+/**
+ * Platform-agnostic action to move an item from one slot to another.
+ * ZERO net.minecraft imports.
+ */
 public class MoveItemAction extends BulkAction {
     private final int sourceSlot;
     private final int targetSlot;
@@ -27,7 +29,7 @@ public class MoveItemAction extends BulkAction {
     }
 
     @Override
-    public String getTelemetry(net.minecraft.client.Minecraft client) {
+    public String getTelemetry(Object client) {
         return String.format("%s | From=%d, To=%d", super.getTelemetry(client), sourceSlot, targetSlot);
     }
 }

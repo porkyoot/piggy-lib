@@ -1,9 +1,11 @@
 package is.pig.minecraft.lib.action;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.lib.config.PiggyClientConfig;
 import is.pig.minecraft.lib.util.PiggyLog;
-import is.pig.minecraft.lib.action.telemetry.ActionForensics;
-import net.minecraft.client.Minecraft;
+import is.pig.minecraft.api.ActionForensics;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 
 import java.util.Optional;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -41,8 +43,11 @@ public class PiggyActionQueue {
      * Enqueues an action for execution in the centralized queue.
      * @param action The stateful action to execute.
      */
-    public void enqueue(IAction action) {
-        ActionForensics.getInstance().log("ENQUEUED", action, "Priority="+action.getPriority()+", IsClick="+action.isClick());
+    public void enqueue(Action action) {
+        Object client = PiggyServiceRegistry.getWorldStateAdapter().getClient();
+        String telemetry = action.getTelemetry(client);
+        ActionForensics.getInstance().log("ENQUEUED", action.getSourceMod(), action.getName(), 
+            "Priority="+action.getPriority()+", IsClick="+action.isClick() + (telemetry != null ? " | " + telemetry : ""));
         queue.put(new PrioritizedAction(action, sequenceNumber.getAndIncrement()));
     }
 
@@ -58,16 +63,17 @@ public class PiggyActionQueue {
      * Ticks the action queue, processing any pending actions that are not rate-limited.
      * This method should be called every client tick.
      */
-    public void tick(Minecraft client) {
+    public void tick(Object client) {
         if (client != null) {
             is.pig.minecraft.lib.util.perf.PerfMonitor.getInstance().tick();
-            is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager.getInstance().tick(client.player);
+            // Refactored to pass client object through
+            is.pig.minecraft.lib.util.telemetry.MetaActionSessionManager.getInstance().tick(client);
         }
         ticksSinceLastClick++;
         
         while (!queue.isEmpty()) {
             PrioritizedAction top = queue.peek();
-            IAction action = top.action();
+            Action action = top.action();
 
             // 1. CPS Rate Limiter Gate
             if (isCpsRateLimited(action)) {
@@ -76,7 +82,9 @@ public class PiggyActionQueue {
 
             // 2. Execution
             boolean justInitiated = !action.isInitiated();
-            ActionForensics.getInstance().log(justInitiated ? "EXECUTING" : "VERIFYING", action, "TicksSinceClick=" + ticksSinceLastClick);
+            String telemetry = action.getTelemetry(client);
+            ActionForensics.getInstance().log(justInitiated ? "EXECUTING" : "VERIFYING", action.getSourceMod(), action.getName(), 
+                "TicksSinceClick=" + ticksSinceLastClick + (telemetry != null ? " | " + telemetry : ""));
             Optional<Boolean> result = action.execute(client);
             
             if (justInitiated && action.isClick() && action.isInitiated()) {
@@ -92,20 +100,23 @@ public class PiggyActionQueue {
                 
                 if (success) {
                     LOGGER.debug("Completed action '{}'", action.getName());
-                    ActionForensics.getInstance().log("COMPLETED", action, "Success (ClicksSinceStart=" + ticksSinceLastClick + ")");
+                    ActionForensics.getInstance().log("COMPLETED", action.getSourceMod(), action.getName(), 
+                        "Success (ClicksSinceStart=" + ticksSinceLastClick + ")" + (telemetry != null ? " | " + telemetry : ""));
                 } else {
                     LOGGER.warn("Action '{}' failed! Clearing queue for mod '{}' to trigger retry.", action.getName(), action.getSourceMod());
-                    ActionForensics.getInstance().log("FAILED", action, "Failure/Timeout (ClicksSinceStart=" + ticksSinceLastClick + ")");
+                    ActionForensics.getInstance().log("FAILED", action.getSourceMod(), action.getName(), 
+                        "Failure/Timeout (ClicksSinceStart=" + ticksSinceLastClick + ")" + (telemetry != null ? " | " + telemetry : ""));
                     clear(action.getSourceMod());
                 }
             } else {
-                ActionForensics.getInstance().log("PENDING", action, "Waiting for verification");
+                ActionForensics.getInstance().log("PENDING", action.getSourceMod(), action.getName(), 
+                    "Waiting for verification" + (telemetry != null ? " | " + telemetry : ""));
                 break; // Action is waiting for verification. Block queue.
             }
         }
     }
 
-    private boolean isCpsRateLimited(IAction action) {
+    private boolean isCpsRateLimited(Action action) {
         if (!action.isClick() || action.isInitiated() || 
             action.getPriority() == ActionPriority.HIGHEST || action.ignoreGlobalCps()) {
             return false; // Fast-pass
@@ -131,7 +142,7 @@ public class PiggyActionQueue {
         return ticksSinceLastClick < requiredDelayTicks;
     }
 
-    private record PrioritizedAction(IAction action, long sequence) implements Comparable<PrioritizedAction> {
+    private record PrioritizedAction(Action action, long sequence) implements Comparable<PrioritizedAction> {
         @Override
         public int compareTo(PrioritizedAction o) {
             int priorityComparison = this.action.getPriority().compareTo(o.action.getPriority());

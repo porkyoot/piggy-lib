@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.ui;
+import is.pig.minecraft.api.*;
 
 import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.OptionDescription;

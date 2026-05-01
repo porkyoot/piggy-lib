@@ -1,6 +1,6 @@
 package is.pig.minecraft.lib.action;
 
-import is.pig.minecraft.lib.inventory.sort.Move;
+import is.pig.minecraft.inventory.sorting.Move;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;

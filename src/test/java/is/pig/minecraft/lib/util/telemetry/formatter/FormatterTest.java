@@ -1,6 +1,6 @@
 package is.pig.minecraft.lib.util.telemetry.formatter;
 
-import is.pig.minecraft.lib.util.telemetry.data.FallPredictionResult;
+import is.pig.minecraft.api.FallPredictionResult;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
@@ -33,8 +33,8 @@ class FormatterTest {
     @Test
     void testFormatTrajectory() {
         FallPredictionResult prediction = new FallPredictionResult(
-            new BlockPos(1, 2, 3),
-            new Vec3(1.1, 2.2, 3.3),
+            new is.pig.minecraft.api.BlockPos(1, 2, 3),
+            new is.pig.minecraft.api.Vec3(1.1, 2.2, 3.3),
             10,
             15.5f,
             20.0f,

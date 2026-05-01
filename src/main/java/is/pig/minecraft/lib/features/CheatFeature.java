@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.features;
+import is.pig.minecraft.api.*;
 
 /**
  * Represents a cheat feature that can be registered and controlled.
@@ -9,6 +10,7 @@ package is.pig.minecraft.lib.features;
  * @param description    Brief description of what the feature does
  * @param defaultEnabled Whether the feature is enabled by default
  */
+@Deprecated(forRemoval = true)
 public record CheatFeature(
         String id,
         String displayName,

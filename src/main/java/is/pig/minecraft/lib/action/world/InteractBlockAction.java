@@ -1,10 +1,8 @@
 package is.pig.minecraft.lib.action.world;
 
-import is.pig.minecraft.lib.action.AbstractAction;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.phys.BlockHitResult;
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
@@ -25,22 +23,15 @@ public class InteractBlockAction extends AbstractAction {
     }
 
     @Override
-    protected void onExecute(Minecraft client) {
-        if (client.player != null && client.gameMode != null) {
-            InteractionResult result = client.gameMode.useItemOn(client.player, this.hand, this.hitResult);
-            if (!result.consumesAction()) {
-                InteractionResult useResult = client.gameMode.useItem(client.player, this.hand);
-                if (useResult.shouldSwing() || result.shouldSwing()) {
-                    client.player.swing(this.hand);
-                }
-            } else if (result.shouldSwing()) {
-                client.player.swing(this.hand);
-            }
+    protected void onExecute(Object clientObj) {
+        var adapter = PiggyServiceRegistry.getWorldInteractionAdapters().stream().findFirst();
+        if (adapter.isPresent()) {
+            adapter.get().useItemOn(clientObj, this.hand, this.hitResult);
         }
     }
 
     @Override
-    protected Optional<Boolean> verify(Minecraft client) {
+    protected Optional<Boolean> verify(Object clientObj) {
         return verifyCondition.getAsBoolean() ? Optional.of(true) : Optional.empty();
     }
 
@@ -54,3 +45,4 @@ public class InteractBlockAction extends AbstractAction {
         return true;
     }
 }
+

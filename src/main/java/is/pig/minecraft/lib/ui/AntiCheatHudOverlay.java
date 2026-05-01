@@ -1,23 +1,15 @@
 package is.pig.minecraft.lib.ui;
 
-import net.minecraft.resources.ResourceLocation;
-
 /**
  * HUD overlay that renders the blocked action icon below the crosshair.
+ * ZERO net.minecraft imports.
  */
 public class AntiCheatHudOverlay {
-    private static final ResourceLocation BLOCKED_ICON = ResourceLocation.fromNamespaceAndPath("piggy",
-            "textures/gui/icons/cheating_cancel.png");
+    private static final String BLOCKED_ICON = "piggy:textures/gui/icons/cheating_cancel.png";
     private static boolean registered = false;
 
-    /**
-     * Replaced by the centralized IconQueueOverlay, preserving the interface.
-     */
     public static void register() {
-        // No-op or we can leave it to avoid breaking other things that call register()
-        if (registered) {
-            return;
-        }
+        if (registered) return;
         registered = true;
     }
 

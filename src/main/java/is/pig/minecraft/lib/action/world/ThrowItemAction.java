@@ -1,7 +1,8 @@
 package is.pig.minecraft.lib.action.world;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.action.AbstractAction;
-import is.pig.minecraft.lib.action.ActionPriority;
+import is.pig.minecraft.api.AbstractAction;
+import is.pig.minecraft.api.ActionPriority;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 
@@ -18,7 +19,8 @@ public class ThrowItemAction extends AbstractAction {
     }
 
     @Override
-    protected void onExecute(Minecraft client) {
+    protected void onExecute(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         if (client.player != null && client.gameMode != null) {
             initialCount = client.player.getItemInHand(hand).getCount();
             client.gameMode.useItem(client.player, hand);
@@ -27,7 +29,8 @@ public class ThrowItemAction extends AbstractAction {
     }
 
     @Override
-    protected Optional<Boolean> verify(Minecraft client) {
+    protected Optional<Boolean> verify(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         if (client.player == null) return Optional.empty();
         
         int currentCount = client.player.getItemInHand(hand).getCount();

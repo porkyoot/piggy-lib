@@ -1,7 +1,8 @@
 package is.pig.minecraft.lib.action.world;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.action.AbstractAction;
-import is.pig.minecraft.lib.action.ActionPriority;
+import is.pig.minecraft.api.AbstractAction;
+import is.pig.minecraft.api.ActionPriority;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -20,7 +21,8 @@ public class ConsumeItemAction extends AbstractAction {
     }
 
     @Override
-    protected void onExecute(Minecraft client) {
+    protected void onExecute(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         if (client.player != null && client.gameMode != null) {
             if (!hasStartedConsuming) {
                 // Determine our target item counts
@@ -39,7 +41,8 @@ public class ConsumeItemAction extends AbstractAction {
     }
 
     @Override
-    protected Optional<Boolean> verify(Minecraft client) {
+    protected Optional<Boolean> verify(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         if (client.player == null || !hasStartedConsuming) return Optional.empty();
         
         // Timeout safeguard

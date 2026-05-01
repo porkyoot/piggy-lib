@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.ui;
+import is.pig.minecraft.api.*;
 
 /**
  * Enum defining why a feature was blocked by anti-cheat enforcement.

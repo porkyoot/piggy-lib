@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.util.telemetry;
+import is.pig.minecraft.api.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -73,5 +74,5 @@ public class StructuredEventDispatcher {
      * @param parent       The original structured event.
      * @param enrichedData The mutable data map after global enrichment.
      */
-    public record EnrichedEventView(StructuredEvent parent, Map<String, Object> enrichedData) {}
+
 }

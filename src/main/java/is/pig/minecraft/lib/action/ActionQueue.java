@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.action;
+import is.pig.minecraft.api.*;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -7,9 +8,9 @@ import net.minecraft.client.Minecraft;
 import java.util.Optional;
 
 public class ActionQueue {
-    private final Queue<IAction> queue = new ConcurrentLinkedQueue<>();
+    private final Queue<Action> queue = new ConcurrentLinkedQueue<>();
 
-    public void enqueue(IAction action) {
+    public void enqueue(Action action) {
         if (action != null) {
             queue.add(action);
         }
@@ -20,7 +21,7 @@ public class ActionQueue {
     }
 
     public void tick(Minecraft client) {
-        IAction currentAction = queue.peek();
+        Action currentAction = queue.peek();
         if (currentAction != null) {
             Optional<Boolean> result = currentAction.execute(client);
             if (result.isPresent()) {

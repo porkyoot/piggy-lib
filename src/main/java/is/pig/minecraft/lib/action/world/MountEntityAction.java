@@ -1,7 +1,8 @@
 package is.pig.minecraft.lib.action.world;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.action.AbstractAction;
-import is.pig.minecraft.lib.action.ActionPriority;
+import is.pig.minecraft.api.AbstractAction;
+import is.pig.minecraft.api.ActionPriority;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -23,7 +24,8 @@ public class MountEntityAction extends AbstractAction {
     }
 
     @Override
-    protected void onExecute(Minecraft client) {
+    protected void onExecute(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         if (startTime == 0) startTime = System.currentTimeMillis();
         if (client.player != null && client.gameMode != null) {
             Entity target = entitySupplier.get();
@@ -36,7 +38,8 @@ public class MountEntityAction extends AbstractAction {
     }
 
     @Override
-    protected Optional<Boolean> verify(Minecraft client) {
+    protected Optional<Boolean> verify(Object clientObj) {
+        Minecraft client = (Minecraft) clientObj;
         if (client.player == null) return Optional.empty();
         Entity target = entitySupplier.get();
         if (target == null) return Optional.of(false); // Disappeared

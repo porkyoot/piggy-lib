@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.util.telemetry;
+import is.pig.minecraft.api.*;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -48,13 +49,13 @@ public class JsonHistoryStore {
         StructuredEventDispatcher.getInstance().registerListener(this::onEvent);
     }
 
-    private void onEvent(StructuredEventDispatcher.EnrichedEventView view) {
+    private void onEvent(is.pig.minecraft.api.EnrichedEventView view) {
         if (filter.test(view.parent())) {
             addEntry(view);
         }
     }
 
-    private synchronized void addEntry(StructuredEventDispatcher.EnrichedEventView view) {
+    private synchronized void addEntry(is.pig.minecraft.api.EnrichedEventView view) {
         StructuredEvent event = view.parent();
         
         HistoryEntryRecord entry = new HistoryEntryRecord(

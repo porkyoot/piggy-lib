@@ -1,6 +1,7 @@
-package is.pig.minecraft.lib.inventory.sort;
+package is.pig.minecraft.inventory.sorting;
+import is.pig.minecraft.api.*;
 
-import is.pig.minecraft.lib.action.ActionPriority;
+import is.pig.minecraft.api.ActionPriority;
 import is.pig.minecraft.lib.action.inventory.ClickWindowSlotAction;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;

@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.config;
+import is.pig.minecraft.api.*;
 
 import java.util.Map;
 

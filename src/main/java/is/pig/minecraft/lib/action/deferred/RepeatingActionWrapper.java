@@ -1,23 +1,23 @@
 package is.pig.minecraft.lib.action.deferred;
-
+import is.pig.minecraft.api.*;
+import is.pig.minecraft.api.registry.PiggyServiceRegistry;
+import is.pig.minecraft.api.spi.WorldStateAdapter;
 import is.pig.minecraft.lib.action.PiggyActionQueue;
-import is.pig.minecraft.lib.action.IAction;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
 
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public class RepeatingActionWrapper implements IDeferredAction {
+public class RepeatingActionWrapper implements DeferredAction {
     private static final is.pig.minecraft.lib.util.PiggyLog LOGGER = new is.pig.minecraft.lib.util.PiggyLog("piggy-lib", "Deferred");
     private final BlockPos targetPos;
     private final int maxTicks;
     private final Runnable preTask;
-    private final Supplier<IAction> actionFactory;
+    private final Supplier<Action> actionFactory;
     private final Supplier<Boolean> finishCondition;
-    private final java.util.function.Predicate<Minecraft> contextValidator;
+    private final Predicate<Object> contextValidator;
     private int ageTicks = 0;
 
-    public RepeatingActionWrapper(BlockPos targetPos, int maxTicks, Runnable preTask, Supplier<IAction> actionFactory, Supplier<Boolean> finishCondition, java.util.function.Predicate<Minecraft> contextValidator) {
+    public RepeatingActionWrapper(BlockPos targetPos, int maxTicks, Runnable preTask, Supplier<Action> actionFactory, Supplier<Boolean> finishCondition, Predicate<Object> contextValidator) {
         this.targetPos = targetPos;
         this.maxTicks = maxTicks;
         this.preTask = preTask;
@@ -28,8 +28,8 @@ public class RepeatingActionWrapper implements IDeferredAction {
     }
 
     @Override
-    public boolean tick(Minecraft client) {
-        if (client.player == null || client.level == null) return true;
+    public boolean tick(Object client) {
+        WorldStateAdapter worldState = PiggyServiceRegistry.getWorldStateAdapter();
         
         ageTicks++;
         if (ageTicks > maxTicks) {
@@ -46,7 +46,10 @@ public class RepeatingActionWrapper implements IDeferredAction {
             return false;
         }
 
-        double distSq = client.player.getEyePosition().distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(targetPos));
+        Vec3 eyePos = worldState.getPlayerEyePosition(client);
+        Vec3 targetCenter = new Vec3(targetPos.x() + 0.5, targetPos.y() + 0.5, targetPos.z() + 0.5);
+        double distSq = eyePos.distanceToSqr(targetCenter);
+        
         if (distSq >= 16.0) return false;
 
         if (!PiggyActionQueue.getInstance().hasActions("piggy-build")) {

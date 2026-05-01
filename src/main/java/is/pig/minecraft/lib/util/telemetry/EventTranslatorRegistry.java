@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.util.telemetry;
+import is.pig.minecraft.api.*;
 
 import is.pig.minecraft.lib.I18n;
 
@@ -10,6 +11,7 @@ import java.util.function.BiFunction;
  * Registry mapping physical {@link StructuredEvent} types to humanizing functions.
  * Translators convert structured data into readable log messages using {@link I18n}.
  */
+@Deprecated(forRemoval = true)
 public final class EventTranslatorRegistry {
 
     private static final EventTranslatorRegistry INSTANCE = new EventTranslatorRegistry();

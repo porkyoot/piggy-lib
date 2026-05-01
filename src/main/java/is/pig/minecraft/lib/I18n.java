@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib;
+import is.pig.minecraft.api.*;
 
 import net.minecraft.network.chat.Component;
 

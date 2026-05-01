@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.action.deferred;
+import is.pig.minecraft.api.*;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
@@ -11,7 +12,7 @@ public class DeferredActionTracker {
     private static final DeferredActionTracker INSTANCE = new DeferredActionTracker();
     public static DeferredActionTracker getInstance() { return INSTANCE; }
 
-    private final List<IDeferredAction> queue = new ArrayList<>();
+    private final List<DeferredAction> queue = new ArrayList<>();
     private boolean isRegistered = false;
 
     private DeferredActionTracker() {}
@@ -20,7 +21,7 @@ public class DeferredActionTracker {
         return !queue.isEmpty();
     }
 
-    public void enqueue(IDeferredAction action) {
+    public void enqueue(DeferredAction action) {
         if (!isRegistered) {
             ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
             isRegistered = true;
@@ -29,9 +30,9 @@ public class DeferredActionTracker {
     }
 
     private void onTick(Minecraft client) {
-        Iterator<IDeferredAction> it = queue.iterator();
+        Iterator<DeferredAction> it = queue.iterator();
         while (it.hasNext()) {
-            IDeferredAction action = it.next();
+            DeferredAction action = it.next();
             if (action.tick(client)) {
                 it.remove();
             }

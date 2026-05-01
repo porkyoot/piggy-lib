@@ -1,4 +1,5 @@
 package is.pig.minecraft.lib.util.telemetry;
+import is.pig.minecraft.api.*;
 
 /**
  * Represents the lifecycle state of a MetaActionSession.
